@@ -30,7 +30,7 @@ export const updateOrgBody = yup
 export const getOrgParams = yup
     .object()
     .shape({
-        org_id: yup.string().trim().required(),
+        org_id: yup.string().uuid().required(),
     })
     .strict()
     .noUnknown()

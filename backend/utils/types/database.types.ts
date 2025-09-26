@@ -14,6 +14,38 @@ export type Database = {
     };
     public: {
         Tables: {
+            agents: {
+                Row: {
+                    agent_id: string;
+                    created_at: string;
+                    description: string | null;
+                    name: string;
+                    org_id: string;
+                };
+                Insert: {
+                    agent_id?: string;
+                    created_at?: string;
+                    description?: string | null;
+                    name: string;
+                    org_id: string;
+                };
+                Update: {
+                    agent_id?: string;
+                    created_at?: string;
+                    description?: string | null;
+                    name?: string;
+                    org_id?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "agents_org_id_fkey";
+                        columns: ["org_id"];
+                        isOneToOne: false;
+                        referencedRelation: "orgs";
+                        referencedColumns: ["org_id"];
+                    },
+                ];
+            };
             orgs: {
                 Row: {
                     created_at: string | null;

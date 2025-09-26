@@ -33,7 +33,7 @@ const handleGetOrg = async (
         return res.json({
             success: true,
             data,
-        } satisfies ResponseWithData<any>);
+        } satisfies ResponseWithData<MappedOrg>);
     } catch (error) {
         log.error("request-failed", {
             error,
@@ -95,7 +95,7 @@ const handleUpdateOrg = async (
         return res.json({
             success: true,
             data,
-        } satisfies ResponseWithData<any>);
+        } satisfies ResponseWithData<MappedOrg>);
     } catch (error) {
         log.error("request-failed", {
             error,

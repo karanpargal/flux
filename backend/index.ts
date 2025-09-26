@@ -1,13 +1,12 @@
-
+import { agentsRouter } from "./microservices/agents/agents.routes";
+import { orgsRouter } from "./microservices/orgs/orgs.routes";
+import { LoggerService, SupabaseService } from "./services";
+import { CORS_CONFIG } from "./utils/constants";
 import cors from "cors";
 import "dotenv/config";
 import type { Express, NextFunction, Request, Response } from "express";
 import express, { Router } from "express";
 import { createServer } from "node:http";
-import {
-    LoggerService,
-} from "./services";
-import { CORS_CONFIG } from "./utils/constants";
 
 const app: Express = express();
 const server = createServer(app);
@@ -27,7 +26,8 @@ app.get("/healthcheck", (_req: Request, res: Response) => {
 const v1Router = Router();
 app.use("/api/v1", v1Router);
 
-
+v1Router.use("/agents", agentsRouter);
+v1Router.use("/orgs", orgsRouter);
 
 app.use("/*splat", (_req: Request, res: Response) => {
     res.status(404).json({
@@ -58,10 +58,7 @@ app.use(
 (async () => {
     const log = LoggerService.scoped("server");
     try {
-
-        await Promise.all([
-          
-        ]);
+        await Promise.all([SupabaseService.init()]);
         const env: string = process.env.NODE_ENV || "development";
         if (env !== "test") {
             const port: number = +(process.env.PORT || 7990);
