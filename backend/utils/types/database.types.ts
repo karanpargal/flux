@@ -49,6 +49,7 @@ export type Database = {
             orgs: {
                 Row: {
                     created_at: string | null;
+                    email: string;
                     industry: Database["public"]["Enums"]["ORG_INDUSTRY"];
                     multisig_wallet_address: string;
                     name: string;
@@ -57,6 +58,7 @@ export type Database = {
                 };
                 Insert: {
                     created_at?: string | null;
+                    email: string;
                     industry: Database["public"]["Enums"]["ORG_INDUSTRY"];
                     multisig_wallet_address: string;
                     name: string;
@@ -65,6 +67,7 @@ export type Database = {
                 };
                 Update: {
                     created_at?: string | null;
+                    email?: string;
                     industry?: Database["public"]["Enums"]["ORG_INDUSTRY"];
                     multisig_wallet_address?: string;
                     name?: string;

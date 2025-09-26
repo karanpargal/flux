@@ -9,6 +9,7 @@ export const createOrg = async ({
     multisig_wallet_address,
     name,
     team_size,
+    email,
 }: MappedOrg) => {
     const log = logger.scoped("createOrg");
 
@@ -19,6 +20,7 @@ export const createOrg = async ({
             multisig_wallet_address,
             name,
             team_size,
+            email,
         })
         .select()
         .single();
@@ -30,6 +32,7 @@ export const createOrg = async ({
                 multisig_wallet_address,
                 name,
                 team_size,
+                email,
             },
             error,
         });
@@ -65,7 +68,7 @@ export const getOrgById = async (org_id: string) => {
 
 export const updateOrg = async (
     org_id: MappedOrg["org_id"],
-    { industry, multisig_wallet_address, name, team_size }: MappedOrg,
+    { industry, multisig_wallet_address, name, email, team_size }: MappedOrg,
 ) => {
     const log = logger.scoped("updateOrg");
 
@@ -76,6 +79,7 @@ export const updateOrg = async (
             multisig_wallet_address,
             name,
             team_size,
+            email,
         })
         .eq("org_id", org_id)
         .select()
@@ -89,6 +93,7 @@ export const updateOrg = async (
                 multisig_wallet_address,
                 name,
                 team_size,
+                email,
             },
             error,
         });

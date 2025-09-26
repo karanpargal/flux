@@ -1,17 +1,15 @@
 import { LoggerService, SupabaseService } from "../../services";
 import { SUPABASE_NO_ROWS_ERROR_CODE } from "../../utils/constants";
-import { MappedAgent } from "../../utils/types/mappers.types";
+import { MappedAgent, MappedOrg } from "../../utils/types/mappers.types";
 import { v4 as uuidv4 } from "uuid";
 
 const logger = LoggerService.scoped("agents");
 
 // Send POST request to third-party server
-export const notifyThirdPartyServer = async ({
-    agent_id,
-    description,
-    name,
-    org_id,
-}: Omit<MappedAgent, "created_at">) => {
+export const notifyThirdPartyServer = async (
+    org_name: MappedOrg["name"],
+    { agent_id, description, name, org_id }: Omit<MappedAgent, "created_at">,
+) => {
     const log = logger.scoped("notifyThirdPartyServer");
 
     try {
@@ -30,6 +28,7 @@ export const notifyThirdPartyServer = async ({
                 description,
                 name,
                 org_id,
+                org_name,
             }),
         });
 
@@ -89,17 +88,16 @@ export const storeAgentInDatabase = async ({
     return data;
 };
 
-export const createAgent = async ({
-    name,
-    description,
-    org_id,
-}: MappedAgent) => {
+export const createAgent = async (
+    org_name: MappedOrg["name"],
+    { name, description, org_id }: MappedAgent,
+) => {
     const log = logger.scoped("createAgent");
 
     try {
         const agent_id = uuidv4();
 
-        await notifyThirdPartyServer({
+        await notifyThirdPartyServer(org_name, {
             agent_id,
             name,
             description,

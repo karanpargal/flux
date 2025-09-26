@@ -1,5 +1,3 @@
-import type { NextFunction, Request, Response } from "express";
-import { Router } from "express";
 import { validateQuery } from "../../middlewares";
 import { LoggerService } from "../../services";
 import { MappedAgent } from "../../utils/types/mappers.types";
@@ -17,6 +15,8 @@ import {
     getAgentsForOrg,
     updateAgent,
 } from "./agents.service";
+import type { NextFunction, Request, Response } from "express";
+import { Router } from "express";
 
 export const agentsRouter = Router();
 
@@ -92,7 +92,7 @@ const handleCreateAgent = async (
         const agentData = req.body;
 
         const data = await log.time("create-agent", () =>
-            createAgent(agentData),
+            createAgent(agentData.org_name, agentData),
         );
 
         return res.status(201).json({
