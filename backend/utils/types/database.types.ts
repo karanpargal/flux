@@ -51,7 +51,7 @@ export type Database = {
                     created_at: string | null;
                     email: string;
                     industry: Database["public"]["Enums"]["ORG_INDUSTRY"];
-                    multisig_wallet_address: string;
+                    multisig_wallet_address: string | null;
                     name: string;
                     org_id: string;
                     team_size: number;
@@ -60,7 +60,7 @@ export type Database = {
                     created_at?: string | null;
                     email: string;
                     industry: Database["public"]["Enums"]["ORG_INDUSTRY"];
-                    multisig_wallet_address: string;
+                    multisig_wallet_address?: string | null;
                     name: string;
                     org_id?: string;
                     team_size: number;
@@ -69,7 +69,7 @@ export type Database = {
                     created_at?: string | null;
                     email?: string;
                     industry?: Database["public"]["Enums"]["ORG_INDUSTRY"];
-                    multisig_wallet_address?: string;
+                    multisig_wallet_address?: string | null;
                     name?: string;
                     org_id?: string;
                     team_size?: number;
