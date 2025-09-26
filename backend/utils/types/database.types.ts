@@ -16,25 +16,31 @@ export type Database = {
         Tables: {
             agents: {
                 Row: {
+                    active: boolean;
                     agent_id: string;
                     created_at: string;
                     description: string | null;
+                    file_urls: string[];
                     name: string;
                     org_id: string;
                     resource_urls: string[];
                 };
                 Insert: {
+                    active?: boolean;
                     agent_id?: string;
                     created_at?: string;
                     description?: string | null;
+                    file_urls?: string[];
                     name: string;
                     org_id: string;
                     resource_urls?: string[];
                 };
                 Update: {
+                    active?: boolean;
                     agent_id?: string;
                     created_at?: string;
                     description?: string | null;
+                    file_urls?: string[];
                     name?: string;
                     org_id?: string;
                     resource_urls?: string[];

@@ -6,7 +6,9 @@ import {
     createAgentBody,
     getAgentParams,
     getAgentsForOrgParams,
+    updateActiveStatusBody,
     updateAgentBody,
+    uploadFileParams,
 } from "./agents.schema";
 import {
     createAgent,
@@ -14,13 +16,34 @@ import {
     getAgentById,
     getAgentsForOrg,
     updateAgent,
+    updateAgentActiveStatus,
+    uploadFileToSupabase,
 } from "./agents.service";
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
+import multer from "multer";
+
+// Extend Request interface to include file property
 
 export const agentsRouter = Router();
 
 const logger = LoggerService.scoped("agents");
+
+const upload = multer({
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 5 * 1024 * 1024, // 10MB limit
+    },
+    fileFilter: (req: any, file: any, cb: any) => {
+        const allowedMimes = ["application/pdf"];
+
+        if (allowedMimes.includes(file.mimetype)) {
+            cb(null, true);
+        } else {
+            cb(new Error("File type not allowed"), false);
+        }
+    },
+});
 
 // GET /agents/:agent_id - Get agent by ID
 const handleGetAgent = async (
@@ -177,6 +200,72 @@ const handleDeleteAgent = async (
     }
 };
 
+// POST /agents/:agent_id/upload - Upload file for agent
+const handleUploadFile = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    const log = logger.scoped("uploadFile");
+    try {
+        const { agent_id } = req.params;
+        const file = req.file;
+        const { currentFileUrls = [] } = req.body;
+
+        if (!file) {
+            log.error("no-file-provided", {
+                agent_id,
+            });
+            throw new Error("No file provided");
+        }
+
+        const public_url = await log.time("upload-file", () =>
+            uploadFileToSupabase(agent_id, file, currentFileUrls),
+        );
+
+        return res.status(201).json({
+            success: true,
+            data: {
+                public_url,
+            },
+        } satisfies ResponseWithData<{
+            public_url: string;
+        }>);
+    } catch (error) {
+        log.error("request-failed", {
+            error,
+        });
+        next(error);
+    }
+};
+
+// PATCH /agents/:agent_id/active - Update agent active status
+const handleUpdateActiveStatus = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    const log = logger.scoped("updateActiveStatus");
+    try {
+        const { agent_id } = req.params;
+        const { active } = req.body;
+
+        const data = await log.time("update-active-status", () =>
+            updateAgentActiveStatus(agent_id, active),
+        );
+
+        return res.json({
+            success: true,
+            data,
+        } satisfies ResponseWithData<MappedAgent>);
+    } catch (error) {
+        log.error("request-failed", {
+            error,
+        });
+        next(error);
+    }
+};
+
 agentsRouter.get(
     "/:agent_id",
     validateQuery("params", getAgentParams),
@@ -202,4 +291,16 @@ agentsRouter.delete(
     "/:agent_id",
     validateQuery("params", getAgentParams),
     handleDeleteAgent,
+);
+agentsRouter.post(
+    "/:agent_id/upload",
+    validateQuery("params", uploadFileParams),
+    upload.single("file"),
+    handleUploadFile,
+);
+agentsRouter.patch(
+    "/:agent_id/active",
+    validateQuery("params", getAgentParams),
+    validateQuery("body", updateActiveStatusBody),
+    handleUpdateActiveStatus,
 );

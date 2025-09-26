@@ -42,3 +42,21 @@ export const getAgentsForOrgParams = yup
     .strict()
     .noUnknown()
     .required();
+
+export const uploadFileParams = yup
+    .object()
+    .shape({
+        agent_id: yup.string().trim().required(),
+    })
+    .strict()
+    .noUnknown()
+    .required();
+
+export const updateActiveStatusBody = yup
+    .object()
+    .shape({
+        active: yup.boolean().required(),
+    })
+    .strict()
+    .noUnknown()
+    .required();
