@@ -6,7 +6,6 @@ const logger = LoggerService.scoped("orgs");
 
 export const createOrg = async ({
     industry,
-    multisig_wallet_address,
     name,
     team_size,
     email,
@@ -17,7 +16,7 @@ export const createOrg = async ({
         .from("orgs")
         .insert({
             industry,
-            multisig_wallet_address,
+            multisig_wallet_address: null,
             name,
             team_size,
             email,
@@ -29,7 +28,6 @@ export const createOrg = async ({
         log.error("create-failed", {
             data: {
                 industry,
-                multisig_wallet_address,
                 name,
                 team_size,
                 email,
