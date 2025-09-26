@@ -91,18 +91,20 @@ export const storeAgentInDatabase = async ({
 
 export const createAgent = async (
     org_name: MappedOrg["name"],
-    { name, description, org_id }: MappedAgent,
+    { name, description, org_id, resource_urls }: MappedAgent,
 ) => {
     const log = logger.scoped("createAgent");
 
     try {
         const agent_id = await notifyThirdPartyServer(org_name, {
+            resource_urls,
             name,
             description,
             org_id,
         });
 
         const data = await storeAgentInDatabase({
+            resource_urls,
             agent_id,
             name,
             description,

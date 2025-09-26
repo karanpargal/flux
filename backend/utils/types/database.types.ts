@@ -21,6 +21,7 @@ export type Database = {
                     description: string | null;
                     name: string;
                     org_id: string;
+                    resource_urls: string[];
                 };
                 Insert: {
                     agent_id?: string;
@@ -28,6 +29,7 @@ export type Database = {
                     description?: string | null;
                     name: string;
                     org_id: string;
+                    resource_urls?: string[];
                 };
                 Update: {
                     agent_id?: string;
@@ -35,6 +37,7 @@ export type Database = {
                     description?: string | null;
                     name?: string;
                     org_id?: string;
+                    resource_urls?: string[];
                 };
                 Relationships: [
                     {
