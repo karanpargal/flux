@@ -18,7 +18,5 @@
     "endOfLine": "auto",
     "embeddedLanguageFormatting": "auto",
     "singleAttributePerLine": false,
-    "plugins": [
-        "@trivago/prettier-plugin-sort-imports",
-    ]
+    "plugins": ["@trivago/prettier-plugin-sort-imports"]
 }

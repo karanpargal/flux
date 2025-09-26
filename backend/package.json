@@ -1,38 +1,36 @@
 {
-  "name": "games-server",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.ts",
-  "scripts": {
-    "dev": "tsc-watch --onSuccess \"pnpm start\"",
-    "build": "rimraf dist && tsc",
-    "start": "node ./dist/index.js",
-    "types:database": "ts-node ./scripts/generate-supabase-types.ts"
-  },
-  "engines": {
-    "node": "^20.9.0"
-  },
-  "engineStrict": true,
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@supabase/supabase-js": "^2.56.0",
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.1",
-    "express": "^5.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "rimraf": "^6.0.1",
-    "yup": "^1.7.1"
-  },
-  "devDependencies": {
-    "@trivago/prettier-plugin-sort-imports": "^5.2.2",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.3",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^24.3.0",
-    "prettier": "^3.6.2",
-    "tsc-watch": "^7.1.1",
-    "typescript": "^5.9.2"
-  }
+    "name": "supportify",
+    "version": "1.0.0",
+    "description": "",
+    "main": "index.ts",
+    "scripts": {
+        "dev": "pnpm run types && tsc-watch --onSuccess \"pnpm start\"",
+        "build": "rimraf dist && tsc",
+        "start": "node ./dist/index.js",
+        "types": "pnpm types:database",
+        "types:database": "ts-node ./scripts/generate-supabase-types.ts"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@supabase/supabase-js": "^2.58.0",
+        "cors": "^2.8.5",
+        "dotenv": "^17.2.1",
+        "express": "^5.1.0",
+        "jsonwebtoken": "^9.0.2",
+        "rimraf": "^6.0.1",
+        "yup": "^1.7.1"
+    },
+    "devDependencies": {
+        "@trivago/prettier-plugin-sort-imports": "^5.2.2",
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.3",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/node": "^24.3.0",
+        "prettier": "^3.6.2",
+        "ts-node": "^10.9.2",
+        "tsc-watch": "^7.1.1",
+        "typescript": "^5.9.2"
+    }
 }
