@@ -14,126 +14,32 @@ export type Database = {
     };
     public: {
         Tables: {
-            action_endpoints: {
-                Row: {
-                    auth_config: Json | null;
-                    auth_type: string | null;
-                    created_at: string | null;
-                    endpoint_url: string;
-                    id: string;
-                    is_active: boolean | null;
-                    max_amount_per_call: number | null;
-                    org_id: string;
-                    tags: string[] | null;
-                    title: string;
-                    updated_at: string | null;
-                };
-                Insert: {
-                    auth_config?: Json | null;
-                    auth_type?: string | null;
-                    created_at?: string | null;
-                    endpoint_url: string;
-                    id?: string;
-                    is_active?: boolean | null;
-                    max_amount_per_call?: number | null;
-                    org_id: string;
-                    tags?: string[] | null;
-                    title: string;
-                    updated_at?: string | null;
-                };
-                Update: {
-                    auth_config?: Json | null;
-                    auth_type?: string | null;
-                    created_at?: string | null;
-                    endpoint_url?: string;
-                    id?: string;
-                    is_active?: boolean | null;
-                    max_amount_per_call?: number | null;
-                    org_id?: string;
-                    tags?: string[] | null;
-                    title?: string;
-                    updated_at?: string | null;
-                };
-                Relationships: [
-                    {
-                        foreignKeyName: "action_endpoints_org_id_fkey";
-                        columns: ["org_id"];
-                        isOneToOne: false;
-                        referencedRelation: "orgs";
-                        referencedColumns: ["id"];
-                    },
-                ];
-            };
             orgs: {
                 Row: {
                     created_at: string | null;
-                    id: string;
-                    multisig_wallet_address: string | null;
-                    org_name: string;
-                    updated_at: string | null;
+                    industry: Database["public"]["Enums"]["ORG_INDUSTRY"];
+                    multisig_wallet_address: string;
+                    name: string;
+                    org_id: string;
+                    team_size: number;
                 };
                 Insert: {
                     created_at?: string | null;
-                    id?: string;
-                    multisig_wallet_address?: string | null;
-                    org_name: string;
-                    updated_at?: string | null;
+                    industry: Database["public"]["Enums"]["ORG_INDUSTRY"];
+                    multisig_wallet_address: string;
+                    name: string;
+                    org_id?: string;
+                    team_size: number;
                 };
                 Update: {
                     created_at?: string | null;
-                    id?: string;
-                    multisig_wallet_address?: string | null;
-                    org_name?: string;
-                    updated_at?: string | null;
+                    industry?: Database["public"]["Enums"]["ORG_INDUSTRY"];
+                    multisig_wallet_address?: string;
+                    name?: string;
+                    org_id?: string;
+                    team_size?: number;
                 };
                 Relationships: [];
-            };
-            readonly_endpoints: {
-                Row: {
-                    auth_config: Json | null;
-                    auth_type: string | null;
-                    created_at: string | null;
-                    endpoint_id: string;
-                    endpoint_url: string;
-                    is_active: boolean | null;
-                    org_id: string;
-                    tags: string[] | null;
-                    title: string;
-                    updated_at: string | null;
-                };
-                Insert: {
-                    auth_config?: Json | null;
-                    auth_type?: string | null;
-                    created_at?: string | null;
-                    endpoint_id?: string;
-                    endpoint_url: string;
-                    is_active?: boolean | null;
-                    org_id: string;
-                    tags?: string[] | null;
-                    title: string;
-                    updated_at?: string | null;
-                };
-                Update: {
-                    auth_config?: Json | null;
-                    auth_type?: string | null;
-                    created_at?: string | null;
-                    endpoint_id?: string;
-                    endpoint_url?: string;
-                    is_active?: boolean | null;
-                    org_id?: string;
-                    tags?: string[] | null;
-                    title?: string;
-                    updated_at?: string | null;
-                };
-                Relationships: [
-                    {
-                        foreignKeyName: "readonly_endpoints_org_id_fkey";
-                        columns: ["org_id"];
-                        isOneToOne: false;
-                        referencedRelation: "orgs";
-                        referencedColumns: ["id"];
-                    },
-                ];
             };
         };
         Views: {
@@ -143,7 +49,7 @@ export type Database = {
             [_ in never]: never;
         };
         Enums: {
-            [_ in never]: never;
+            ORG_INDUSTRY: "Tech";
         };
         CompositeTypes: {
             [_ in never]: never;
@@ -273,6 +179,8 @@ export type CompositeTypes<
 
 export const Constants = {
     public: {
-        Enums: {},
+        Enums: {
+            ORG_INDUSTRY: ["Tech"],
+        },
     },
 } as const;
