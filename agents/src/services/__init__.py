@@ -1,4 +1,4 @@
-from .agent_service import AgentService
 from .process_service import ProcessService
+from .company_agent_service import CompanyAgentService
 
-__all__ = ["AgentService", "ProcessService"]
+__all__ = ["ProcessService", "CompanyAgentService"]
