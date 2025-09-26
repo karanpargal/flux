@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import get_settings
-from .routes import agent_router, health_router
+from .routes import agent_router, health_router, company_agent_router, webhook_router, tool_router, rest_router
 
 
 def create_app() -> FastAPI:
@@ -11,7 +11,7 @@ def create_app() -> FastAPI:
     
     app = FastAPI(
         title="Multi-Agent Management Server",
-        description="A FastAPI server for creating and managing multiple uAgents",
+        description="A FastAPI server for creating and managing multiple uAgents with company-specific agents",
         version="1.0.0"
     )
     
@@ -26,6 +26,10 @@ def create_app() -> FastAPI:
     
     # Include routers
     app.include_router(agent_router)
+    app.include_router(company_agent_router)
+    app.include_router(webhook_router)
+    app.include_router(tool_router)
+    app.include_router(rest_router)
     app.include_router(health_router)
     
     return app

@@ -1,5 +1,5 @@
-from pydantic import BaseSettings
-from typing import List
+from pydantic_settings import BaseSettings
+from typing import List, Optional
 
 
 class Settings(BaseSettings):
@@ -22,6 +22,18 @@ class Settings(BaseSettings):
     
     # Process settings
     process_timeout: int = 5
+    
+    
+    # Company agent settings
+    company_agents_directory: str = "src/company_agents"
+    default_company_agent_port: int = 5000
+    
+    # Webhook settings
+    webhook_base_url: Optional[str] = None
+    webhook_timeout: int = 30
+    
+    # API keys
+    agentverse_api_key: Optional[str] = None
     
     class Config:
         env_file = ".env"
