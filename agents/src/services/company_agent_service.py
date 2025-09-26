@@ -28,31 +28,42 @@ class CompanyAgentService:
         self.process_service = ProcessService()
         self.settings = get_settings()
         self.client = httpx.AsyncClient(timeout=30.0)
+        self.port_mapping: Dict[str, int] = {}
+        self.next_port = 8001
+    
+    def get_next_available_port(self) -> int:
+        """Get the next available port starting from 8001"""
+        port = self.next_port
+        self.next_port += 1
+        return port
     
     def generate_company_agent_code(self, agent_config: CompanyAgentCreateRequest) -> str:
-        """Generate the company agent Python code"""
+        """Generate the company agent Python code with chat protocol"""
         webhook_url = agent_config.webhook_url or f"http://localhost:{agent_config.port}/webhook"
         
-        code = f'''from uagents import Agent, Context, Model
-import sys
+        code = f'''from datetime import datetime
+from uuid import uuid4
 import os
 import json
 import httpx
 import time
-import uuid
 from typing import Dict, Any, List
-from datetime import datetime
+from dotenv import load_dotenv
+from openai import OpenAI
+from uagents import Context, Protocol, Agent, Model
+from uagents_core.contrib.protocols.chat import (
+    ChatAcknowledgement,
+    ChatMessage,
+    EndSessionContent,
+    TextContent,
+    chat_protocol_spec,
+)
 
-class Message(Model):
-    message: str
-    sender_company_id: str = None
-    message_type: str = "text"
-    metadata: Dict[str, Any] = {{}}
-
-class CompanyAgentResponse(Model):
-    response: str
-    status: str = "success"
-    metadata: Dict[str, Any] = {{}}
+load_dotenv()
+client = OpenAI(
+    base_url='https://api.asi1.ai/v1',
+    api_key=os.getenv("ASI_API_KEY"),  
+)
 
 # REST API Models
 class RestRequest(Model):
@@ -67,16 +78,10 @@ class RestResponse(Model):
     status: str = "success"
     metadata: Dict[str, Any] = {{}}
 
-# Chat Protocol Models
-class ChatMessage(Model):
-    role: str
-    content: str
-    timestamp: str = None
-    metadata: Dict[str, Any] = {{}}
-
+# Chat Protocol Models for ASI1 LLM
 class ChatRequest(Model):
-    messages: List[ChatMessage]
-    model: str = "gpt-3.5-turbo"
+    messages: List[Dict[str, Any]]
+    model: str = "asi1-mini"
     temperature: float = 0.7
     max_tokens: int = 1000
     stream: bool = False
@@ -95,40 +100,60 @@ COMPANY_NAME = "{agent_config.company_name}"
 AGENT_NAME = "{agent_config.agent_name}"
 WEBHOOK_URL = "{webhook_url}"
 
+# Agent configuration
+class AgentConfig:
+    def __init__(self):
+        self.capabilities = {agent_config.capabilities}
+
+agent_config = AgentConfig()
+
 agent = Agent(
     name="{agent_config.agent_name}",
+    seed=SEED_PHRASE,
     port={agent_config.port},
-    mailbox=True
+    mailbox=True,
 )
 
-print(f"Company Agent {{agent.address}} for {{COMPANY_NAME}} is ready")
+protocol = Protocol(spec=chat_protocol_spec)
 
-@agent.on_message(model=Message)
-async def handle_message(ctx: Context, sender: str, msg: Message):
-    """Handle incoming messages from other agents"""
+@protocol.on_message(ChatMessage)
+async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
+    await ctx.send(
+        sender,
+        ChatAcknowledgement(timestamp=datetime.now(), acknowledged_msg_id=msg.msg_id),
+    )
+    text = ""
+    for item in msg.content:
+        if isinstance(item, TextContent):
+            text += item.text
+
+    response = "Sorry, I wasn't able to process that."
     try:
-        # Process the message based on company capabilities
-        response = await process_company_request(msg.message, msg.sender_company_id)
-        
-        # Send response back to sender
-        await ctx.send(sender, CompanyAgentResponse(
-            response=response,
-            status="success",
-            metadata={{"company_id": COMPANY_ID, "agent_name": AGENT_NAME}}
-        ))
-        
-        # Send webhook notification if configured
-        if WEBHOOK_URL:
-            await send_webhook_notification(response, msg.sender_company_id)
-            
-    except Exception as e:
-        await ctx.send(sender, CompanyAgentResponse(
-            response=f"Error processing request: {{str(e)}}",
-            status="error",
-            metadata={{"company_id": COMPANY_ID, "error": str(e)}}
-        ))
+        r = client.chat.completions.create(
+            model="asi1-mini",
+            messages=[
+                {{"role": "system", "content": f"You are a helpful AI assistant for {{COMPANY_NAME}}. You handle {{', '.join(agent_config.capabilities)}} requests. Answer user queries clearly and politely."}},
+                {{"role": "user", "content": text}},
+            ],
+            max_tokens=2048,
+        )
+        response = str(r.choices[0].message.content)
+    except:
+        ctx.logger.exception("Error querying model")
 
-# REST API Endpoints
+    await ctx.send(sender, ChatMessage(
+        timestamp=datetime.utcnow(),
+        msg_id=uuid4(),
+        content=[
+            TextContent(type="text", text=response),
+            EndSessionContent(type="end-session"),
+        ]
+    ))
+
+@protocol.on_message(ChatAcknowledgement)
+async def handle_ack(ctx: Context, sender: str, msg: ChatAcknowledgement):
+    pass
+
 @agent.on_rest_get("/rest/get", RestResponse)
 async def handle_rest_get(ctx: Context) -> Dict[str, Any]:
     """Handle GET requests to the agent"""
@@ -151,7 +176,7 @@ async def handle_rest_post(ctx: Context, req: RestRequest) -> RestResponse:
     """Handle POST requests to the agent"""
     ctx.logger.info("Received POST request")
     try:
-        # Process the request
+        # Process the request using ASI1 LLM
         response_text = await process_company_request(req.text, req.sender_company_id)
         
         return RestResponse(
@@ -175,7 +200,6 @@ async def handle_rest_post(ctx: Context, req: RestRequest) -> RestResponse:
             metadata={{"error": str(e)}}
         )
 
-# Chat Protocol Endpoints for ASI1 LLM
 @agent.on_rest_post("/chat/completions", ChatRequest, ChatResponse)
 async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatResponse:
     """Handle chat completions for ASI1 LLM compatibility"""
@@ -184,16 +208,8 @@ async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatRespons
         # Process the chat messages
         response_content = await process_chat_messages(req.messages, req.model)
         
-        # Create response
-        response_message = ChatMessage(
-            role="assistant",
-            content=response_content,
-            timestamp=datetime.now().isoformat(),
-            metadata={{"company_id": COMPANY_ID, "agent_name": AGENT_NAME}}
-        )
-        
         return ChatResponse(
-            id=str(uuid.uuid4()),
+            id=str(uuid4()),
             created=int(time.time()),
             model=req.model,
             choices=[{{
@@ -213,7 +229,7 @@ async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatRespons
     except Exception as e:
         error_message = f"Error processing chat request: {{str(e)}}"
         return ChatResponse(
-            id=str(uuid.uuid4()),
+            id=str(uuid4()),
             created=int(time.time()),
             model=req.model,
             choices=[{{
@@ -228,25 +244,40 @@ async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatRespons
         )
 
 async def process_company_request(message: str, sender_company_id: str) -> str:
-    """Process company-specific requests"""
-    # This is where company-specific logic would go
-    # For now, return a generic response
-    return f"{{AGENT_NAME}} for {{COMPANY_NAME}} received: {{message}}"
+    """Process company-specific requests using ASI1 LLM"""
+    try:
+        r = client.chat.completions.create(
+            model="asi1-mini",
+            messages=[
+                {{"role": "system", "content": f"You are a helpful AI assistant for {{COMPANY_NAME}}. You handle {{', '.join(agent_config.capabilities)}} requests. Answer user queries clearly and politely."}},
+                {{"role": "user", "content": message}},
+            ],
+            max_tokens=2048,
+        )
+        return str(r.choices[0].message.content)
+    except Exception as e:
+        return f"Error processing request: {{str(e)}}"
 
-async def process_chat_messages(messages: List[ChatMessage], model: str) -> str:
+async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> str:
     """Process chat messages for ASI1 LLM compatibility"""
-    # Extract the last user message
-    user_messages = [msg for msg in messages if msg.role == "user"]
-    if not user_messages:
-        return "No user message found"
-    
-    last_message = user_messages[-1].content
-    
-    # Process the message based on company capabilities
-    response = await process_company_request(last_message, None)
-    
-    # Format response for chat
-    return f"{{AGENT_NAME}} ({{COMPANY_NAME}}): {{response}}"
+    try:
+        # Add system message for company context
+        system_message = {{
+            "role": "system", 
+            "content": f"You are a helpful AI assistant for {{COMPANY_NAME}}. You handle {{', '.join(agent_config.capabilities)}} requests. Answer user queries clearly and politely."
+        }}
+        
+        # Combine system message with user messages
+        all_messages = [system_message] + messages
+        
+        r = client.chat.completions.create(
+            model=model,
+            messages=all_messages,
+            max_tokens=2048,
+        )
+        return str(r.choices[0].message.content)
+    except Exception as e:
+        return f"Error processing chat request: {{str(e)}}"
 
 async def send_webhook_notification(response: str, sender_company_id: str):
     """Send webhook notification to company's system"""
@@ -261,6 +292,10 @@ async def send_webhook_notification(response: str, sender_company_id: str):
     except Exception as e:
         print(f"Webhook notification failed: {{e}}")
 
+agent.include(protocol, publish_manifest=True)
+
+print(f"Company Agent {{agent.address}} for {{COMPANY_NAME}} is ready")
+
 if __name__ == "__main__":
     agent.run()
 '''
@@ -271,30 +306,24 @@ if __name__ == "__main__":
     async def create_company_agent(self, agent_config: CompanyAgentCreateRequest) -> CompanyAgentResponse:
         """Create a new company-specific agent"""
         try:
-            # Check if port is already in use
-            for agent_info in self.company_agents_registry.values():
-                if agent_info["port"] == agent_config.port:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=f"Port {agent_config.port} is already in use"
-                    )
-            
-            # Generate unique agent ID
             agent_id = str(uuid.uuid4())
             
-            # Generate agent code
+            if agent_config.port is None:
+                assigned_port = self.get_next_available_port()
+                agent_config.port = assigned_port
+            else:
+                assigned_port = agent_config.port
+            
+            self.port_mapping[agent_id] = assigned_port
+            
             agent_code = self.generate_company_agent_code(agent_config)
             
-            # Save agent file
             filepath = self.save_company_agent_file(agent_id, agent_code)
             
-            # Start agent process
             process = self.process_service.start_agent_process(agent_id, filepath)
             
-            # Wait for agent to initialize
             await asyncio.sleep(3)
             
-            # Check if process is still running
             if process.poll() is not None:
                 stdout, stderr = process.communicate()
                 raise HTTPException(
@@ -302,11 +331,9 @@ if __name__ == "__main__":
                     detail=f"Company agent failed to start: {stderr}"
                 )
             
-            # Generate agent address
             agent_address = f"agent_{agent_id}@{agent_config.agent_name}"
             
             
-            # Store agent information
             self.company_agents_registry[agent_id] = {
                 "company_id": agent_config.company_id,
                 "company_name": agent_config.company_name,
@@ -345,12 +372,12 @@ if __name__ == "__main__":
     
     
     def save_company_agent_file(self, agent_id: str, agent_code: str) -> str:
-        """Save company agent code to a file"""
-        filename = f"company_agent_{agent_id}.py"
-        filepath = os.path.join(os.getcwd(), self.settings.company_agents_directory, filename)
+        """Save company agent code to a file in its own folder"""
+        agent_folder = os.path.join(os.getcwd(), self.settings.company_agents_directory, f"agent_{agent_id}")
+        os.makedirs(agent_folder, exist_ok=True)
         
-        # Ensure directory exists
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        filename = f"company_agent_{agent_id}.py"
+        filepath = os.path.join(agent_folder, filename)
         
         with open(filepath, 'w') as f:
             f.write(agent_code)
@@ -484,11 +511,15 @@ if __name__ == "__main__":
         if agent_info.get("process_id") and self.process_service.is_process_running(agent_info["process_id"]):
             self.process_service.stop_agent_process(agent_info["process_id"])
         
-        # Remove agent file
-        if "filepath" in agent_info and os.path.exists(agent_info["filepath"]):
-            os.remove(agent_info["filepath"])
+        if "filepath" in agent_info:
+            agent_folder = os.path.dirname(agent_info["filepath"])
+            if os.path.exists(agent_folder):
+                import shutil
+                shutil.rmtree(agent_folder)
         
-        # Remove from registry
+        if agent_id in self.port_mapping:
+            del self.port_mapping[agent_id]
+        
         del self.company_agents_registry[agent_id]
         
         return {"message": f"Company agent {agent_id} deleted successfully"}

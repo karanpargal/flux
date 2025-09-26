@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     
     # API keys
     agentverse_api_key: Optional[str] = None
+    asi_api_key: Optional[str] = None
     
     class Config:
         env_file = ".env"

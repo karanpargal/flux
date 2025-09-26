@@ -15,23 +15,245 @@ class AgentService:
     def __init__(self):
         self.agents_registry: Dict[str, Dict[str, Any]] = {}
         self.process_service = ProcessService()
+        self.port_mapping: Dict[str, int] = {}
+        self.next_port = 8001
+    
+    def get_next_available_port(self) -> int:
+        """Get the next available port starting from 8001"""
+        port = self.next_port
+        self.next_port += 1
+        return port
     
     def generate_agent_code(self, agent_config: AgentCreateRequest) -> str:
-        """Generate the agent Python code dynamically"""
-        code = f'''from uagents import Agent, Context, Model
-import sys
+        """Generate the agent Python code dynamically with chat protocol"""
+        code = f'''from datetime import datetime
+from uuid import uuid4
 import os
+import time
+from typing import Dict, Any, List
+from dotenv import load_dotenv
+from openai import OpenAI
+from uagents import Context, Protocol, Agent, Model
+from uagents_core.contrib.protocols.chat import (
+    ChatAcknowledgement,
+    ChatMessage,
+    EndSessionContent,
+    TextContent,
+    chat_protocol_spec,
+)
 
-class Message(Model):
-    message: str
+load_dotenv()
+client = OpenAI(
+    base_url='https://api.asi1.ai/v1',
+    api_key=os.getenv("ASI_API_KEY"),  
+)
+
+# REST API Models
+class RestRequest(Model):
+    text: str
+    metadata: Dict[str, Any] = {{}}
+
+class RestResponse(Model):
+    timestamp: int
+    text: str
+    agent_address: str
+    status: str = "success"
+    metadata: Dict[str, Any] = {{}}
+
+# Chat Protocol Models for ASI1 LLM
+class ChatRequest(Model):
+    messages: List[Dict[str, Any]]
+    model: str = "asi1-mini"
+    temperature: float = 0.7
+    max_tokens: int = 1000
+    stream: bool = False
+
+class ChatResponse(Model):
+    id: str
+    object: str = "chat.completion"
+    created: int
+    model: str
+    choices: List[Dict[str, Any]]
+    usage: Dict[str, Any] = {{}}
 
 SEED_PHRASE = "{agent_config.seed_phrase or 'default_seed_phrase'}"
 
+# Agent configuration
+class AgentConfig:
+    def __init__(self):
+        self.capabilities = ['general_assistance', 'chat', 'information_retrieval']
+
+agent_config = AgentConfig()
+
 agent = Agent(
     name="{agent_config.name}",
+    seed=SEED_PHRASE,
     port={agent_config.port},
-    mailbox={str(agent_config.mailbox).lower()}
+    mailbox={str(agent_config.mailbox).lower()},
 )
+
+protocol = Protocol(spec=chat_protocol_spec)
+
+@protocol.on_message(ChatMessage)
+async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
+    await ctx.send(
+        sender,
+        ChatAcknowledgement(timestamp=datetime.now(), acknowledged_msg_id=msg.msg_id),
+    )
+    text = ""
+    for item in msg.content:
+        if isinstance(item, TextContent):
+            text += item.text
+
+    response = "Sorry, I wasn't able to process that."
+    try:
+        r = client.chat.completions.create(
+            model="asi1-mini",
+            messages=[
+                {{"role": "system", "content": "You are a helpful AI assistant. Answer user queries clearly and politely."}},
+                {{"role": "user", "content": text}},
+            ],
+            max_tokens=2048,
+        )
+        response = str(r.choices[0].message.content)
+    except:
+        ctx.logger.exception("Error querying model")
+
+    await ctx.send(sender, ChatMessage(
+        timestamp=datetime.utcnow(),
+        msg_id=uuid4(),
+        content=[
+            TextContent(type="text", text=response),
+            EndSessionContent(type="end-session"),
+        ]
+    ))
+
+@protocol.on_message(ChatAcknowledgement)
+async def handle_ack(ctx: Context, sender: str, msg: ChatAcknowledgement):
+    pass
+
+# REST API Endpoints
+@agent.on_rest_get("/rest/get", RestResponse)
+async def handle_rest_get(ctx: Context) -> Dict[str, Any]:
+    """Handle GET requests to the agent"""
+    ctx.logger.info("Received GET request")
+    return {{
+        "timestamp": int(time.time()),
+        "text": f"Hello from {{agent_config.name}}!",
+        "agent_address": ctx.agent.address,
+        "status": "success",
+        "metadata": {{
+            "agent_name": "{agent_config.name}"
+        }}
+    }}
+
+@agent.on_rest_post("/rest/post", RestRequest, RestResponse)
+async def handle_rest_post(ctx: Context, req: RestRequest) -> RestResponse:
+    """Handle POST requests to the agent"""
+    ctx.logger.info("Received POST request")
+    try:
+        # Process the request using ASI1 LLM
+        response_text = await process_request(req.text)
+        
+        return RestResponse(
+            timestamp=int(time.time()),
+            text=response_text,
+            agent_address=ctx.agent.address,
+            status="success",
+            metadata={{
+                "agent_name": "{agent_config.name}"
+            }}
+        )
+    except Exception as e:
+        return RestResponse(
+            timestamp=int(time.time()),
+            text=f"Error processing request: {{str(e)}}",
+            agent_address=ctx.agent.address,
+            status="error",
+            metadata={{"error": str(e)}}
+        )
+
+# Chat Protocol Endpoints for ASI1 LLM
+@agent.on_rest_post("/chat/completions", ChatRequest, ChatResponse)
+async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatResponse:
+    """Handle chat completions for ASI1 LLM compatibility"""
+    ctx.logger.info("Received chat completion request")
+    try:
+        # Process the chat messages
+        response_content = await process_chat_messages(req.messages, req.model)
+        
+        return ChatResponse(
+            id=str(uuid4()),
+            created=int(time.time()),
+            model=req.model,
+            choices=[{{
+                "index": 0,
+                "message": {{
+                    "role": "assistant",
+                    "content": response_content
+                }},
+                "finish_reason": "stop"
+            }}],
+            usage={{
+                "prompt_tokens": len(str(req.messages)),
+                "completion_tokens": len(response_content),
+                "total_tokens": len(str(req.messages)) + len(response_content)
+            }}
+        )
+    except Exception as e:
+        error_message = f"Error processing chat request: {{str(e)}}"
+        return ChatResponse(
+            id=str(uuid4()),
+            created=int(time.time()),
+            model=req.model,
+            choices=[{{
+                "index": 0,
+                "message": {{
+                    "role": "assistant",
+                    "content": error_message
+                }},
+                "finish_reason": "stop"
+            }}],
+            usage={{"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+        )
+
+async def process_request(message: str) -> str:
+    """Process requests using ASI1 LLM"""
+    try:
+        r = client.chat.completions.create(
+            model="asi1-mini",
+            messages=[
+                {{"role": "system", "content": "You are a helpful AI assistant. Answer user queries clearly and politely."}},
+                {{"role": "user", "content": message}},
+            ],
+            max_tokens=2048,
+        )
+        return str(r.choices[0].message.content)
+    except Exception as e:
+        return f"Error processing request: {{str(e)}}"
+
+async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> str:
+    """Process chat messages for ASI1 LLM compatibility"""
+    try:
+        # Add system message
+        system_message = {{
+            "role": "system", 
+            "content": "You are a helpful AI assistant. Answer user queries clearly and politely."
+        }}
+        
+        # Combine system message with user messages
+        all_messages = [system_message] + messages
+        
+        r = client.chat.completions.create(
+            model=model,
+            messages=all_messages,
+            max_tokens=2048,
+        )
+        return str(r.choices[0].message.content)
+    except Exception as e:
+        return f"Error processing chat request: {{str(e)}}"
+
+agent.include(protocol, publish_manifest=True)
 
 print(f"Your agent's address is: {{agent.address}}")
 
@@ -41,12 +263,13 @@ if __name__ == "__main__":
         return code
     
     def save_agent_file(self, agent_id: str, agent_code: str) -> str:
-        """Save agent code to a file"""
-        filename = f"agent_{agent_id}.py"
-        filepath = os.path.join(os.getcwd(), "src", "agents", filename)
+        """Save agent code to a file in its own folder"""
+        # Create agent-specific folder
+        agent_folder = os.path.join(os.getcwd(), "src", "agents", f"agent_{agent_id}")
+        os.makedirs(agent_folder, exist_ok=True)
         
-        # Ensure agents directory exists
-        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        filename = f"agent_{agent_id}.py"
+        filepath = os.path.join(agent_folder, filename)
         
         with open(filepath, 'w') as f:
             f.write(agent_code)
@@ -56,21 +279,19 @@ if __name__ == "__main__":
     async def create_agent(self, agent_config: AgentCreateRequest) -> AgentResponse:
         """Create a new agent"""
         try:
-            # Check if port is already in use
-            for agent_info in self.agents_registry.values():
-                if agent_info["port"] == agent_config.port:
-                    raise HTTPException(
-                        status_code=400, 
-                        detail=f"Port {agent_config.port} is already in use"
-                    )
-            
-            # Generate unique agent ID
             agent_id = str(uuid.uuid4())
             
-            # Generate agent code
+            # Get next available port (use provided port or assign new one)
+            if agent_config.port is None:
+                assigned_port = self.get_next_available_port()
+                agent_config.port = assigned_port
+            else:
+                assigned_port = agent_config.port
+            
+            self.port_mapping[agent_id] = assigned_port
+            
             agent_code = self.generate_agent_code(agent_config)
             
-            # Save agent file
             filepath = self.save_agent_file(agent_id, agent_code)
             
             # Start agent process
@@ -176,9 +397,16 @@ if __name__ == "__main__":
         if agent_info.get("process_id") and self.process_service.is_process_running(agent_info["process_id"]):
             self.process_service.stop_agent_process(agent_info["process_id"])
         
-        # Remove agent file
-        if "filepath" in agent_info and os.path.exists(agent_info["filepath"]):
-            os.remove(agent_info["filepath"])
+        # Remove agent folder and all files
+        if "filepath" in agent_info:
+            agent_folder = os.path.dirname(agent_info["filepath"])
+            if os.path.exists(agent_folder):
+                import shutil
+                shutil.rmtree(agent_folder)
+        
+        # Remove from port mapping
+        if agent_id in self.port_mapping:
+            del self.port_mapping[agent_id]
         
         # Remove from registry
         del self.agents_registry[agent_id]

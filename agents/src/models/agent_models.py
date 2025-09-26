@@ -6,7 +6,7 @@ from datetime import datetime
 class AgentCreateRequest(BaseModel):
     """Request model for creating a new agent"""
     name: str
-    port: int
+    port: Optional[int] = None 
     seed_phrase: Optional[str] = None
     mailbox: bool = True
     endpoint: Optional[List[str]] = None
@@ -17,7 +17,7 @@ class CompanyAgentCreateRequest(BaseModel):
     company_id: str
     company_name: str
     agent_name: str
-    port: int
+    port: Optional[int] = None  
     seed_phrase: Optional[str] = None
     capabilities: List[str] = []
     description: Optional[str] = None
