@@ -153,7 +153,7 @@ export default function AgentInterfacePage() {
                     </div>
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-stone-500 mb-2">
+                            <h1 className="text-3xl font-bold text-stone-500">
                                 {isEditing ? "Edit Agent" : agent?.name}
                             </h1>
                             <p className="text-stone-400">

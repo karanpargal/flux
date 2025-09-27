@@ -2,6 +2,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import Image from "next/image";
 
 const Header: React.FC = () => {
     const pathname = usePathname();
@@ -12,10 +13,17 @@ const Header: React.FC = () => {
             <div className="mx-auto px-4 sm:px-6">
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
+
                     <div className="flex items-center">
+                        <Image
+                            src="/logo.png"
+                            alt="Flux"
+                            width={80}
+                            height={70}
+                        />
                         <Link
                             href="/"
-                            className="text-2xl font-bold text-stone-500 hover:text-citrus-500 transition-colors"
+                            className="text-3xl font-bold text-stone-500 hover:text-citrus-500 transition-colors -ml-2"
                         >
                             Flux
                         </Link>
@@ -25,26 +33,9 @@ const Header: React.FC = () => {
 
                     {/* CTA Button */}
                     <div className="flex items-center space-x-4">
-                        {pathname === "/dashboard" ? (
-                            <button className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors">
-                                Sign Out
-                            </button>
-                        ) : (
-                            <>
-                                <Link
-                                    href="/login"
-                                    className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors"
-                                >
-                                    Sign In
-                                </Link>
-                                <Link
-                                    href="/signup"
-                                    className="bg-citrus-500 hover:bg-citrus-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
-                                >
-                                    Get Started
-                                </Link>
-                            </>
-                        )}
+                        <button className=" bg-citrus-600 hover:bg-citrus-700  text-white px-3 py-2 text-base font-medium transition-colors rounded">
+                            Sign Out
+                        </button>
                     </div>
 
                     {/* Mobile menu button */}

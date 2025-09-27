@@ -25,14 +25,16 @@ export default function LoginPage() {
                 className="bg-gradient-to-r from-blue-500/10 to-orange-500/10 py-4"
             >
                 <div className="flex items-center space-x-8 text-sm font-semibold text-gray-600">
+                    <span>📈 Document Reference</span>
+                    <span>🔧 Transaction Verification</span>
+                    <span>🌟 Calculator</span>
+                    <span>💡 Refund Processing</span>
+                    <span>🎯 Customer Support</span>
+                    <span>✨ Product Information</span>
+                    <span>🔧 Technical Support</span>
+                    <span>🌟 Billing Support</span>
+                    <span>💡 General Inquiries</span>
                     <span>🚀 AI-Powered Support</span>
-                    <span>✨ Smart Automation</span>
-                    <span>🎯 Customer Excellence</span>
-                    <span>💡 Innovation First</span>
-                    <span>🌟 Seamless Experience</span>
-                    <span>🔧 Advanced Tools</span>
-                    <span>📈 Growth Focused</span>
-                    <span>🎨 Beautiful Design</span>
                 </div>
             </Marquee>
 
@@ -61,14 +63,16 @@ export default function LoginPage() {
                 direction="right"
                 className="bg-gradient-to-r from-orange-500/10 to-blue-500/10 py-4"
             >
-                <div className="flex items-center space-x-8text-sm font-semibold text-gray-600">
-                    <span>🎨 Beautiful Design</span>
-                    <span>📈 Growth Focused</span>
-                    <span>🔧 Advanced Tools</span>
-                    <span>🌟 Seamless Experience</span>
-                    <span>💡 Innovation First</span>
-                    <span>🎯 Customer Excellence</span>
-                    <span>✨ Smart Automation</span>
+                <div className="flex items-center space-x-8 text-sm font-semibold text-gray-600">
+                    <span>📈 Document Reference</span>
+                    <span>🔧 Transaction Verification</span>
+                    <span>🌟 Calculator</span>
+                    <span>💡 Refund Processing</span>
+                    <span>🎯 Customer Support</span>
+                    <span>✨ Product Information</span>
+                    <span>🔧 Technical Support</span>
+                    <span>🌟 Billing Support</span>
+                    <span>💡 General Inquiries</span>
                     <span>🚀 AI-Powered Support</span>
                 </div>
             </Marquee>

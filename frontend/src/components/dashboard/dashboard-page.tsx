@@ -41,24 +41,20 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ className = "" }) => {
     };
 
     return (
-        <div className={`space-y-6  p-8 ${className}`}>
+        <div className={`flex flex-col gap-y-4 p-8 ${className}`}>
             <div className="flex items-center justify-between">
-                <div>
-                    <h2 className="text-2xl font-bold text-stone-500">
-                        Agents
-                    </h2>
-                    <p className="text-stone-400">Manage your support agents</p>
-                </div>
+                <h2 className="text-2xl font-bold text-stone-500">Agents</h2>
+
                 <button
                     onClick={handleCreateAgent}
-                    className="bg-citrus-500 hover:bg-citrus-600 text-white px-6 py-2 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:ring-offset-2"
+                    className="bg-citrus-500 hover:bg-citrus-600 text-white px-6 py-2 rounded font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:ring-offset-2"
                 >
                     Create Agent
                 </button>
             </div>
 
             {!orgId && !orgLoading && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 rounded p-4">
                     <p className="text-red-600">
                         No organization ID provided. Please access this page
                         with a valid organization ID.
@@ -74,7 +70,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ className = "" }) => {
             )}
 
             {orgError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 rounded p-4">
                     <p className="text-red-600">
                         Error loading organization: {orgError}
                     </p>
@@ -89,7 +85,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ className = "" }) => {
             )}
 
             {orgId && !orgLoading && !orgError && agentsError && (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="bg-red-50 border border-red-200 rounded p-4">
                     <p className="text-red-600">
                         Error loading agents: {agentsError}
                     </p>
@@ -107,12 +103,10 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ className = "" }) => {
                 !orgError &&
                 !agentsLoading &&
                 !agentsError && (
-                    <div className="border-b border-stone-200">
-                        <div className="py-2 px-1">
-                            <span className="text-sm font-medium text-stone-500">
-                                All Agents ({agents?.length || 0})
-                            </span>
-                        </div>
+                    <div className="border-b border-citrus-950 pb-4">
+                        <span className="text-sm font-medium text-stone-500">
+                            All Agents ({agents?.length || 0})
+                        </span>
                     </div>
                 )}
 
