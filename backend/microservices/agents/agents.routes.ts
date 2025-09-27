@@ -5,7 +5,6 @@ import { ResponseWithData } from "../../utils/types/shared.types";
 import {
     addResourceUrlsBody,
     addResourceUrlsParams,
-    createAgentBody,
     deleteFileParams,
     getAgentParams,
     getAgentsForOrgParams,
@@ -378,7 +377,7 @@ agentsRouter.get(
 );
 agentsRouter.post(
     "/",
-    validateQuery("body", createAgentBody),
+    // validateQuery("body", createAgentBody),
     upload.array("files", 3),
     handleCreateAgent,
 );

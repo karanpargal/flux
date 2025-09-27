@@ -5,7 +5,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 export class SupabaseService {
     private static logger = LoggerService.scoped("SupabaseService");
     private static anonClient: SupabaseClient<Database>;
-    // private static adminClient: SupabaseClient<Database>;
+    private static adminClient: SupabaseClient<Database>;
 
     public static initAnon = (): void => {
         this.anonClient = createClient<Database>(
@@ -14,12 +14,12 @@ export class SupabaseService {
         );
     };
 
-    // public static initAdmin = (): void => {
-    //     this.adminClient = createClient<Database>(
-    //         process.env.SUPABASE_URL as string,
-    //         process.env.SUPABASE_SERVICE_ROLE_KEY as string,
-    //     );
-    // };
+    public static initAdmin = (): void => {
+        this.adminClient = createClient<Database>(
+            process.env.SUPABASE_URL as string,
+            process.env.SUPABASE_SECRET_KEY as string,
+        );
+    };
 
     public static init = async (): Promise<void> => {
         if (
@@ -37,14 +37,15 @@ export class SupabaseService {
         this.logger.info("init-success");
     };
 
-    public static getSupabase = () // access?: "admin" | string,
-    : SupabaseClient<Database> => {
-        // if (access === "admin") {
-        //     if (!this.adminClient) {
-        //         this.initAdmin();
-        //     }
-        //     return this.adminClient;
-        // }
+    public static getSupabase = (
+        access?: "admin" | string,
+    ): SupabaseClient<Database> => {
+        if (access === "admin") {
+            if (!this.adminClient) {
+                this.initAdmin();
+            }
+            return this.adminClient;
+        }
 
         // if (access) {
         //     return createClient<Database>(

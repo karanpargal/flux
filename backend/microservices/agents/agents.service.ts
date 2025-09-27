@@ -368,7 +368,7 @@ export const uploadFileToSupabase = async (org_id: string, file: any) => {
         const file_name = file.originalname;
         const storage_path = `${org_id}/${file_name}`;
 
-        const { data, error } = await SupabaseService.getSupabase()
+        const { error } = await SupabaseService.getSupabase("admin")
             .storage.from("supportify")
             .upload(storage_path, file.buffer, {
                 contentType: file.mimetype,
