@@ -222,24 +222,6 @@ agent_config = AgentConfig()
 {f"pdf_reader = PDFReader()" if "document_reference" in agent_config.capabilities else ""}
 # Calculator capability available by default
 
-# Initialize refund processor if refund processing capability is enabled
-{f"""
-# Initialize refund processor with company configuration
-if refund_config:
-    create_refund_processor(
-        company_id=refund_config.get('company_id', COMPANY_ID),
-        max_refund_amount=refund_config.get('max_refund_amount', '1000000000000000000'),
-        expected_address=refund_config.get('expected_address', ''),
-        custom_api_url=refund_config.get('custom_api_url'),
-        custom_api_headers=refund_config.get('custom_api_headers'),
-        custom_api_field=refund_config.get('custom_api_field'),
-        escalation_threshold=refund_config.get('escalation_threshold')
-    )
-    print(f"✅ Refund processor initialized for company {{COMPANY_NAME}}")
-else:
-    print("⚠️ Refund processing capability enabled but no refund configuration provided")
-""" if "refund_processing" in agent_config.capabilities else ""}
-
 # System prompt for the agent
 system_prompt = f"""{system_prompt}"""
 
@@ -255,6 +237,24 @@ def get_available_tools():
     return {available_tools}
 
 {tool_functions}
+
+# Initialize refund processor if refund processing capability is enabled (must be after tool functions are defined)
+{f"""
+# Initialize refund processor with company configuration
+if refund_config:
+    initialize_refund_processor(
+        company_id=refund_config.get('company_id', COMPANY_ID),
+        max_refund_amount=refund_config.get('max_refund_amount', '1000000000000000000'),
+        expected_address=refund_config.get('expected_address', ''),
+        custom_api_url=refund_config.get('custom_api_url'),
+        custom_api_headers=refund_config.get('custom_api_headers'),
+        custom_api_field=refund_config.get('custom_api_field'),
+        escalation_threshold=refund_config.get('escalation_threshold')
+    )
+    print(f"✅ Refund processor initialized for company {{COMPANY_NAME}} with expected address: {{refund_config.get('expected_address', '')}}")
+else:
+    print("⚠️ Refund processing capability enabled but no refund configuration provided")
+""" if "refund_processing" in agent_config.capabilities else ""}
 
 agent = Agent(
     name="{agent_config.agent_name}",

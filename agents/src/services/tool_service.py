@@ -4,7 +4,7 @@ import math
 from typing import Dict, Any, List, Optional
 from fastapi import HTTPException
 
-from ..tools import PDFReader, process_refund, validate_refund_request, verify_transaction
+from ..tools import PDFReader, verify_transaction
 
 
 class ToolService:
@@ -114,83 +114,6 @@ class ToolService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to process PDF request: {str(e)}")
     
-    async def process_refund_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Process a refund request from an agent
-        
-        Args:
-            request_data: Dictionary containing refund request parameters
-            
-        Returns:
-            Dictionary containing refund processing results
-        """
-        try:
-            required_fields = ["user_address", "transaction_hash", "requested_amount", 
-                             "agent_private_key", "refund_chain"]
-            
-            for field in required_fields:
-                if field not in request_data:
-                    raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
-            
-            company_address = request_data.get("company_address")
-            if not company_address:
-                raise HTTPException(status_code=400, detail="company_address is required for refund processing")
-            
-            result = await process_refund(
-                user_address=request_data["user_address"],
-                transaction_hash=request_data["transaction_hash"],
-                requested_amount=request_data["requested_amount"],
-                agent_private_key=request_data["agent_private_key"],
-                refund_chain=request_data["refund_chain"],
-                company_address=company_address,
-                max_refund_amount=request_data.get("max_refund_amount"),
-                reason=request_data.get("reason")
-            )
-            
-            return result
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to process refund request: {str(e)}")
-    
-    async def validate_refund_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Validate a refund request from an agent without processing
-        
-        Args:
-            request_data: Dictionary containing refund validation parameters
-            
-        Returns:
-            Dictionary containing validation results
-        """
-        try:
-            required_fields = ["user_address", "transaction_hash", "requested_amount", 
-                             "refund_chain"]
-            
-            for field in required_fields:
-                if field not in request_data:
-                    raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
-            
-            company_address = request_data.get("company_address")
-            if not company_address:
-                raise HTTPException(status_code=400, detail="company_address is required for refund validation")
-            
-            result = await validate_refund_request(
-                user_address=request_data["user_address"],
-                transaction_hash=request_data["transaction_hash"],
-                requested_amount=request_data["requested_amount"],
-                refund_chain=request_data["refund_chain"],
-                company_address=company_address,
-                max_refund_amount=request_data.get("max_refund_amount")
-            )
-            
-            return result
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to validate refund request: {str(e)}")
     
     async def process_transaction_verification_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -267,15 +190,17 @@ class ToolService:
             "refund_processor": {
                 "description": "Process blockchain refunds with validation and execution",
                 "capabilities": [
-                    "process_refund",
-                    "validate_refund_request"
+                    "process_refund_transaction",
+                    "validate_refund_transaction",
+                    "process_overpayment_refund_transaction"
                 ],
                 "supported_chains": ["ethereum", "polygon", "bsc"],
                 "security_features": [
                     "private_key_encryption",
                     "transaction_verification",
                     "amount_validation"
-                ]
+                ],
+                "note": "Refund processing is handled by individual agent instances with company-specific configuration"
             }
         }
     

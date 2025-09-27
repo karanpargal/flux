@@ -15,24 +15,6 @@ class PDFRequest(BaseModel):
     max_length: int = 50000
 
 
-class RefundRequest(BaseModel):
-    user_address: str
-    transaction_hash: str
-    requested_amount: str
-    agent_private_key: str
-    refund_chain: str
-    company_address: str
-    max_refund_amount: Optional[str] = None
-    reason: Optional[str] = None
-
-
-class RefundValidationRequest(BaseModel):
-    user_address: str
-    transaction_hash: str
-    requested_amount: str
-    refund_chain: str
-    company_address: str
-    max_refund_amount: Optional[str] = None
 
 
 router = APIRouter(prefix="/tools", tags=["tools"])
@@ -120,39 +102,6 @@ async def agent_pdf_request(
     return await tool_service.process_pdf_request(request)
 
 
-# Refund Processor Endpoints
-
-@router.post("/refund/process")
-async def process_refund(
-    request: RefundRequest,
-    tool_service: ToolService = Depends(get_tool_service)
-):
-    """Process a refund transaction"""
-    return await tool_service.process_refund_request(request.dict())
-
-
-@router.post("/refund/validate")
-async def validate_refund(
-    request: RefundValidationRequest,
-    tool_service: ToolService = Depends(get_tool_service)
-):
-    """Validate a refund request without processing"""
-    return await tool_service.validate_refund_request(request.dict())
-
-
-@router.post("/agent/refund")
-async def agent_refund_request(
-    request: Dict[str, Any],
-    tool_service: ToolService = Depends(get_tool_service)
-):
-    """Process refund request from an agent"""
-    return await tool_service.process_refund_request(request)
-
-
-@router.post("/agent/refund/validate")
-async def agent_refund_validation(
-    request: Dict[str, Any],
-    tool_service: ToolService = Depends(get_tool_service)
-):
-    """Validate refund request from an agent"""
-    return await tool_service.validate_refund_request(request)
+# Note: Refund processing is handled by individual company agents
+# Each agent has its own refund processor configured with company-specific settings
+# including the expected_address (company's receiving address)
