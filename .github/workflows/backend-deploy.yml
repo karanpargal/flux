@@ -51,33 +51,6 @@ jobs:
 
           # Extract, install and restart Python server
           ssh -o StrictHostKeyChecking=no -i private_key ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} '
-            if ! command -v pip &> /dev/null && ! command -v ~/.local/bin/pip &> /dev/null; then
-              echo "pip not found, installing..."
-              curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-              python3 get-pip.py --user
-              rm get-pip.py
-              # Add to PATH permanently for this session
-              echo "export PATH=\"\$HOME/.local/bin:\$PATH\"" >> ~/.bashrc
-              export PATH="$HOME/.local/bin:$PATH"
-            else
-              # Ensure PATH includes pip location
-              export PATH="$HOME/.local/bin:$PATH"
-            fi
-            
-            if ! command -v pm2 &> /dev/null; then
-              echo "pm2 not found, installing..."
-              # Install Node.js if not present
-              if ! command -v node &> /dev/null; then
-                echo "Node.js not found, installing..."
-                curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash -
-                sudo apt-get install -y nodejs
-              fi
-              # Install pm2 globally with sudo to avoid permission issues
-              sudo npm install -g pm2
-              # Allow current user to run pm2
-              sudo chown -R $(whoami) ~/.pm2 2>/dev/null || true
-            fi
-            
             # Create backup of current deployment
             if [ -d "agents-server" ]; then
               mv agents-server agents-server-backup-$(date +%Y%m%d-%H%M%S) || true
