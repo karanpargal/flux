@@ -29,7 +29,12 @@ async def verify_transaction(
     """
     try:
         # GoldRush API configuration
-        api_key = os.getenv('GOLDRUSH_API_KEY', 'your-default-api-key')
+        api_key = os.getenv('GOLDRUSH_API_KEY')
+        if not api_key:
+            return {
+                "verified": False,
+                "error": "GoldRush API key not configured"
+            }
         base_url = "https://api.goldrush.dev/v1"
         headers = {"Authorization": f"Bearer {api_key}"}
         

@@ -18,6 +18,7 @@ from ..models.agent_models import (
 )
 from .process_service import ProcessService
 from .pdf_service import PDFService
+from .capability_service import CapabilityService
 from ..config import get_settings
 from ..tools.pdf_reader import PDFReader
 from ..tools.transaction_verifier import verify_transaction, get_transaction_verification_schema
@@ -30,6 +31,7 @@ class CompanyAgentService:
         self.company_agents_registry: Dict[str, Dict[str, Any]] = {}
         self.process_service = ProcessService()
         self.pdf_service = PDFService()
+        self.capability_service = CapabilityService()
         self.settings = get_settings()
         self.client = httpx.AsyncClient(timeout=30.0)
         self.port_mapping: Dict[str, int] = {}
@@ -84,36 +86,38 @@ class CompanyAgentService:
         """Generate the company support agent Python code with chat protocol and tools"""
         webhook_url = agent_config.webhook_url or f"http://localhost:{agent_config.port}/webhook"
         
+        # Validate capabilities
+        validation_result = self.capability_service.validate_capabilities(agent_config.capabilities)
+        if not validation_result["valid"]:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Invalid capabilities: {validation_result['invalid_capabilities']}. Available: {validation_result['available_capabilities']}"
+            )
+        
         pdf_context = ""
         if agent_config.pdf_document_urls:
             pdf_context = await self.get_pdf_context(agent_config.pdf_document_urls)
         
-        # Generate support agent system prompt
+        # Generate support agent system prompt using capability service
         support_categories = agent_config.support_categories or ["general", "technical", "billing"]
         company_products = agent_config.company_products or ["products and services"]
         
-        system_prompt = f"""You are a helpful AI support agent for {agent_config.company_name}. 
-
-Your role is to assist customers with:
-- Product information and how our services work
-- Technical support and troubleshooting
-- Billing and payment questions
-- General inquiries about {agent_config.company_name}
-
-You have access to the following tools:
-- PDF Document Reference: You can search through company documents to find specific information
-- Transaction Verification: You can verify blockchain transactions and payments
-
-Company Products/Services: {', '.join(company_products)}
-Support Categories: {', '.join(support_categories)}
-
-CRITICAL INSTRUCTIONS:
-1. When users ask ANY question about {agent_config.company_name}, employees, skills, experience, projects, or company information, you MUST ALWAYS call the search_company_documents tool FIRST before responding.
-2. Use search terms like: "work experience", "programming languages", "technologies", "education", "projects", "skills", "achievements"
-3. Do NOT ask for permission - automatically search the documents and provide the information you find.
-4. If you find relevant information, share it with the user. If you don't find anything, then explain what you searched for.
-
-Always be helpful, professional, and accurate. Use the document search tool automatically when users ask about company information."""
+        system_prompt = self.capability_service.get_system_prompt_for_capabilities(
+            agent_config.capabilities,
+            agent_config.company_name,
+            support_categories,
+            company_products
+        )
+        
+        # Get tool imports and functions based on capabilities
+        tool_imports = self.capability_service.get_tool_imports_for_capabilities(agent_config.capabilities)
+        tool_functions = self.capability_service.get_tool_functions_for_capabilities(
+            agent_config.capabilities, 
+            agent_config.pdf_document_urls
+        )
+        
+        # Get available tools for the agent
+        available_tools = self.capability_service.get_tools_for_capabilities(agent_config.capabilities)
         
         code = f'''from datetime import datetime
 from uuid import uuid4
@@ -138,8 +142,7 @@ from uagents_core.contrib.protocols.chat import (
 import sys
 import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
-from tools.pdf_reader import PDFReader
-from tools.transaction_verifier import verify_transaction, get_transaction_verification_schema
+{chr(10).join(tool_imports)}
 
 load_dotenv()
 client = OpenAI(
@@ -163,7 +166,7 @@ class RestResponse(Model):
 # Chat Protocol Models for ASI1 LLM
 class ChatRequest(Model):
     messages: List[Dict[str, Any]]
-    model: str = "asi1-mini"
+    model: str = "asi1-fast"
     temperature: float = 0.7
     max_tokens: int = 1000
     stream: bool = False
@@ -189,26 +192,12 @@ class AgentConfig:
 
 agent_config = AgentConfig()
 
-# Initialize tools
-pdf_reader = PDFReader()
+# Initialize tools based on capabilities
+{f"pdf_reader = PDFReader()" if "document_reference" in agent_config.capabilities else ""}
+{f"webpage_reader = WebpageReader()" if "webpage_reading" in agent_config.capabilities else ""}
 
 # System prompt for the agent
-system_prompt = f"""You are a helpful AI support agent for {agent_config.company_name}. 
-
-Your role is to assist customers with:
-- Product information and how our services work
-- Technical support and troubleshooting
-- Billing and payment questions
-- General inquiries about {agent_config.company_name}
-
-You have access to the following tools:
-- PDF Document Reference: You can search through company documents to find specific information
-- Transaction Verification: You can verify blockchain transactions and payments
-
-Company Products/Services: {', '.join(company_products)}
-Support Categories: {', '.join(support_categories)}
-
-Always be helpful, professional, and accurate. If you need to reference company documents or verify transactions, use the appropriate tools."""
+system_prompt = f"""{system_prompt}"""
 
 # PDF context for document reference
 pdf_context = f"""{pdf_context}"""
@@ -219,144 +208,9 @@ print(f"Agent PDF context preview: {{pdf_context[:500]}}...")
 
 # Define available tools for the support agent following ASI:One format
 def get_available_tools():
-    return [
-        {{
-            "type": "function",
-            "function": {{
-                "name": "search_company_documents",
-                "description": "Search through company PDF documents for specific information about products, policies, or procedures",
-                "parameters": {{
-                    "type": "object",
-                    "properties": {{
-                        "search_terms": {{
-                            "type": "array",
-                            "items": {{"type": "string"}},
-                            "description": "List of terms to search for in company documents"
-                        }},
-                        "document_urls": {{
-                            "type": "array", 
-                            "items": {{"type": "string"}},
-                            "description": "Specific document URLs to search in (optional)"
-                        }}
-                    }},
-                    "required": ["search_terms"],
-                    "additionalProperties": False
-                }},
-                "strict": True
-            }}
-        }},
-        {{
-            "type": "function",
-            "function": {{
-                "name": "verify_transaction",
-                "description": "Verify if a blockchain transaction matches the expected parameters for payment verification",
-                "parameters": {{
-                    "type": "object",
-                    "properties": {{
-                        "tx_hash": {{
-                            "type": "string",
-                            "description": "The transaction hash to verify"
-                        }},
-                        "chain_name": {{
-                            "type": "string",
-                            "description": "The blockchain name (e.g., 'eth-mainnet', 'polygon-mainnet')"
-                        }},
-                        "from_address": {{
-                            "type": "string",
-                            "description": "The expected sender address"
-                        }},
-                        "to_address": {{
-                            "type": "string", 
-                            "description": "The expected receiver address (for native) or recipient (for ERC-20)"
-                        }},
-                        "token_address": {{
-                            "type": "string",
-                            "description": "The token contract address. Use 'native' for native blockchain token"
-                        }},
-                        "amount": {{
-                            "type": "string",
-                            "description": "The expected amount (in wei for native, token units for ERC-20)"
-                        }},
-                        "is_native": {{
-                            "type": "boolean",
-                            "description": "Whether this is a native token transfer (true) or ERC-20 transfer (false)",
-                            "default": False
-                        }}
-                    }},
-                    "required": ["tx_hash", "chain_name", "from_address", "to_address", "token_address", "amount", "is_native"],
-                    "additionalProperties": False
-                }},
-                "strict": True
-            }}
-        }}
-    ]
+    return {available_tools}
 
-async def search_company_documents(search_terms: List[str], document_urls: List[str] = None) -> str:
-    """Search through company documents for information"""
-    print(f"🔍 search_company_documents called with terms: {{search_terms}}, urls: {{document_urls}}")
-    try:
-        # Initialize PDF reader
-        pdf_reader = PDFReader()
-        
-        # If specific document URLs provided, search only those
-        if document_urls:
-            search_results = []
-            for url in document_urls:
-                try:
-                    # Process PDF from URL
-                    result = await pdf_reader.read_pdf_from_url(url, max_length=10000)
-                    if result.get("success") and result.get("content"):
-                        content = result.get("content", "").lower()
-                        
-                        # Search for terms in the document
-                        found_terms = []
-                        for term in search_terms:
-                            if term.lower() in content:
-                                found_terms.append(term)
-                        
-                        if found_terms:
-                            search_results.append(f"Document {{url}}: Found terms: {{', '.join(found_terms)}}")
-                except Exception as e:
-                    search_results.append(f"Error processing {{url}}: {{str(e)}}")
-        else:
-            # Default document URLs for this company
-            default_urls = {agent_config.pdf_document_urls or []}
-            search_results = []
-            
-            for url in default_urls:
-                try:
-                    result = await pdf_reader.read_pdf_from_url(url, max_length=10000)
-                    if result.get("success") and result.get("content"):
-                        content = result.get("content", "").lower()
-                        found_terms = []
-                        for term in search_terms:
-                            if term.lower() in content:
-                                found_terms.append(term)
-                        
-                        if found_terms:
-                            search_results.append(f"Document {{url}}: Found terms: {{', '.join(found_terms)}}")
-                except Exception as e:
-                    search_results.append(f"Error processing {{url}}: {{str(e)}}")
-        
-        if search_results:
-            return f"Found relevant information in company documents:\\n" + "\\n".join(search_results)
-        else:
-            return f"No relevant information found for terms: {{', '.join(search_terms)}}"
-            
-    except Exception as e:
-        return f"Error searching documents: {{str(e)}}"
-
-async def verify_payment_transaction(tx_hash: str, chain_name: str, from_address: str, to_address: str, token_address: str, amount: str, is_native: bool = False) -> str:
-    """Verify a blockchain payment transaction"""
-    try:
-        result = await verify_transaction(tx_hash, chain_name, from_address, to_address, token_address, amount, is_native)
-        if result.get("verified"):
-            return f"✅ Transaction verified successfully! All parameters match."
-        else:
-            mismatches = result.get("mismatches", [])
-            return f"❌ Transaction verification failed. Mismatches: {{json.dumps(mismatches, indent=2)}}"
-    except Exception as e:
-        return f"Error verifying transaction: {{str(e)}}"
+{tool_functions}
 
 agent = Agent(
     name="{agent_config.agent_name}",
@@ -382,7 +236,7 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
     try:
         # Use ASI:One tool calling format with parallel tool calling support
         r = client.chat.completions.create(
-            model="asi1-mini",
+            model="asi1-fast",
             messages=[
                 {{"role": "system", "content": system_prompt + pdf_context}},
                 {{"role": "user", "content": text}},
@@ -431,6 +285,28 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
                             "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
                             "tool_call_id": tool_call.id
                         }})
+                    
+                    elif function_name == "read_webpage_content":
+                        result = await read_webpage_content(
+                            function_args.get("url"),
+                            function_args.get("max_length", 10000)
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    
+                    elif function_name == "search_webpage_content":
+                        result = await search_webpage_content(
+                            function_args.get("url"),
+                            function_args.get("search_terms", [])
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
                     else:
                         # Unknown tool
                         tool_results.append({{
@@ -465,7 +341,7 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
             ]
             
             final_response = client.chat.completions.create(
-                model="asi1-mini",
+                model="asi1-fast",
                 messages=follow_up_messages,
                 tools=get_available_tools(),  # Include tools for safety
                 max_tokens=2048,
@@ -587,7 +463,7 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
     try:
         # First request with tools and parallel execution support
         r = client.chat.completions.create(
-            model="asi1-mini",
+            model="asi1-fast",
             messages=[
                 {{"role": "system", "content": system_prompt + pdf_context}},
                 {{"role": "user", "content": message}},
@@ -635,6 +511,28 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
                             "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
                             "tool_call_id": tool_call.id
                         }})
+                    
+                    elif function_name == "read_webpage_content":
+                        result = await read_webpage_content(
+                            function_args.get("url"),
+                            function_args.get("max_length", 10000)
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    
+                    elif function_name == "search_webpage_content":
+                        result = await search_webpage_content(
+                            function_args.get("url"),
+                            function_args.get("search_terms", [])
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
                     else:
                         # Unknown tool
                         tool_results.append({{
@@ -669,7 +567,7 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
             ]
             
             final_response = client.chat.completions.create(
-                model="asi1-mini",
+                model="asi1-fast",
                 messages=follow_up_messages,
                 tools=get_available_tools(),
                 max_tokens=2048,
@@ -734,6 +632,28 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
                             function_args.get("token_address"),
                             function_args.get("amount"),
                             function_args.get("is_native", False)
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    
+                    elif function_name == "read_webpage_content":
+                        result = await read_webpage_content(
+                            function_args.get("url"),
+                            function_args.get("max_length", 10000)
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    
+                    elif function_name == "search_webpage_content":
+                        result = await search_webpage_content(
+                            function_args.get("url"),
+                            function_args.get("search_terms", [])
                         )
                         tool_results.append({{
                             "role": "tool",
@@ -1076,4 +996,25 @@ if __name__ == "__main__":
             "total_agents": len(self.company_agents_registry),
             "active_agents": active_count,
             "agents": agent_statuses
+        }
+    
+    def get_available_capabilities(self) -> Dict[str, Any]:
+        """Get all available capabilities for company agents"""
+        available_capabilities = self.capability_service.get_available_capabilities()
+        capability_mapping = self.capability_service.get_capability_tools_mapping()
+        
+        capabilities = []
+        for capability in available_capabilities:
+            description = self.capability_service.get_capability_description(capability)
+            tools = capability_mapping.get(capability, [])
+            
+            capabilities.append({
+                "name": capability,
+                "description": description,
+                "tools": tools
+            })
+        
+        return {
+            "capabilities": capabilities,
+            "total_capabilities": len(capabilities)
         }

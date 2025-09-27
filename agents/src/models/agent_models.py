@@ -27,6 +27,19 @@ class CompanyAgentCreateRequest(BaseModel):
     company_products: Optional[List[str]] = None  # List of company products/services
 
 
+class CapabilityInfo(BaseModel):
+    """Model for capability information"""
+    name: str
+    description: str
+    tools: List[Dict[str, Any]] = []
+
+
+class AvailableCapabilitiesResponse(BaseModel):
+    """Response model for available capabilities"""
+    capabilities: List[CapabilityInfo]
+    total_capabilities: int
+
+
 class AgentResponse(BaseModel):
     """Response model for agent information"""
     agent_id: str

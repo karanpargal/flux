@@ -51,7 +51,7 @@ async def chat_completion(
         # Prepare request payload for the agent
         agent_request = {
             "messages": messages_data,
-            "model": chat_request.model or "asi1-mini",
+            "model": chat_request.model or "asi1-fast",
             "temperature": chat_request.temperature or 0.7,
             "max_tokens": chat_request.max_tokens or 1000,
             "stream": chat_request.stream or False
@@ -73,7 +73,7 @@ async def chat_completion(
             return ChatResponse(
                 id=agent_response.get("id", ""),
                 created=agent_response.get("created", 0),
-                model=agent_response.get("model", chat_request.model or "asi1-mini"),
+                model=agent_response.get("model", chat_request.model or "asi1-fast"),
                 choices=agent_response.get("choices", []),
                 usage=agent_response.get("usage", {})
             )

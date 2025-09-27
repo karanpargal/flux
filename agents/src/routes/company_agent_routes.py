@@ -7,7 +7,9 @@ from ..models.agent_models import (
     AgentDiscoveryRequest,
     AgentDiscoveryResponse,
     AgentMessageRequest,
-    AgentMessageResponse
+    AgentMessageResponse,
+    AvailableCapabilitiesResponse,
+    CapabilityInfo
 )
 from ..services import get_company_agent_service
 from ..services.company_agent_service import CompanyAgentService
@@ -85,3 +87,11 @@ async def get_company_agents_health(
 ):
     """Get health status of all company agents"""
     return company_agent_service.get_company_health_status()
+
+
+@router.get("/capabilities", response_model=AvailableCapabilitiesResponse)
+async def get_available_capabilities(
+    company_agent_service: CompanyAgentService = Depends(get_company_agent_service)
+):
+    """Get all available capabilities for company agents"""
+    return company_agent_service.get_available_capabilities()
