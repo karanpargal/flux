@@ -2,3 +2,4 @@ venv
 .env
 __pycache__/
 e2e_test_script.py
+company_agents/

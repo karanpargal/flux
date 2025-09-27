@@ -309,7 +309,7 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
             ],
             tools=get_available_tools(),
             tool_choice="auto",
-            max_tokens=20000,
+            max_tokens=2000,
         )
         
         message = r.choices[0].message
@@ -428,7 +428,7 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
                 model="asi1-fast",
                 messages=follow_up_messages,
                 tools=get_available_tools(),  # Include tools for safety
-                max_tokens=20000,
+                max_tokens=2000,
             )
             response = str(final_response.choices[0].message.content)
         else:
@@ -554,7 +554,7 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
             ],
             tools=get_available_tools(),
             tool_choice="auto",
-            max_tokens=20000,
+            max_tokens=2000,
         )
         
         message_obj = r.choices[0].message
@@ -672,7 +672,7 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
                 model="asi1-fast",
                 messages=follow_up_messages,
                 tools=get_available_tools(),
-                max_tokens=20000,
+                max_tokens=2000,
             )
             return str(final_response.choices[0].message.content)
         else:
@@ -699,7 +699,7 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
             messages=all_messages,
             tools=get_available_tools(),
             tool_choice="auto",
-            max_tokens=20000,
+            max_tokens=2000,
         )
         
         message_obj = r.choices[0].message
@@ -815,7 +815,7 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
                 model=model,
                 messages=follow_up_messages,
                 tools=get_available_tools(),
-                max_tokens=20000,
+                max_tokens=2000,
             )
             return str(final_response.choices[0].message.content)
         else:
