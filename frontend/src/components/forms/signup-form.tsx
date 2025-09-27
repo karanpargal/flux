@@ -214,22 +214,34 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
                 </button>
 
                 {/* Terms and Privacy */}
-                <p className="text-xs text-stone-400 text-center">
-                    By creating an account, you agree to our{" "}
-                    <a
-                        href="#"
-                        className="text-citrus-500 hover:text-citrus-600"
-                    >
-                        Terms of Service
-                    </a>{" "}
-                    and{" "}
-                    <a
-                        href="#"
-                        className="text-citrus-500 hover:text-citrus-600"
-                    >
-                        Privacy Policy
-                    </a>
-                </p>
+                <div className="flex flex-col gap-y-2">
+                    {" "}
+                    <p className="text-xs text-stone-400 text-center">
+                        Already have an account?{" "}
+                        <a
+                            href="/login"
+                            className="text-citrus-500 underline hover:text-citrus-600"
+                        >
+                            Login
+                        </a>
+                    </p>
+                    <p className="text-xs text-stone-400 text-center">
+                        By creating an account, you agree to our{" "}
+                        <a
+                            href="#"
+                            className="text-citrus-500 hover:text-citrus-600"
+                        >
+                            Terms of Service
+                        </a>{" "}
+                        and{" "}
+                        <a
+                            href="#"
+                            className="text-citrus-500 hover:text-citrus-600"
+                        >
+                            Privacy Policy
+                        </a>
+                    </p>
+                </div>
             </form>
         </div>
     );

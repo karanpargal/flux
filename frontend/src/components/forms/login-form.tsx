@@ -124,25 +124,24 @@ const LoginForm: React.FC<LoginFormProps> = ({ onSubmit, className = "" }) => {
                         : "Sign In"}
                 </button>
 
-                <div className="text-center">
+                <div className="flex flex-col gap-y-2">
                     <a
                         href="#"
-                        className="text-sm text-citrus-500 hover:text-citrus-600"
+                        className="text-sm text-center text-citrus-500 hover:text-citrus-600"
                     >
                         Forgot your password?
                     </a>
-                </div>
-
-                <div className="text-center">
-                    <p className="text-sm text-stone-400">
-                        Don&apos;t have an account?{" "}
-                        <a
-                            href="/signup"
-                            className="text-citrus-500 hover:text-citrus-600 font-medium"
-                        >
-                            Sign up here
-                        </a>
-                    </p>
+                    <div className="text-center">
+                        <p className="text-sm text-stone-400">
+                            Don&apos;t have an account?{" "}
+                            <a
+                                href="/signup"
+                                className="text-citrus-500 underline hover:text-citrus-600 font-medium"
+                            >
+                                Sign up here
+                            </a>
+                        </p>
+                    </div>
                 </div>
             </form>
         </div>
