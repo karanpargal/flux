@@ -9,6 +9,7 @@ export const createOrg = async ({
     name,
     team_size,
     email,
+    password,
 }: MappedOrg) => {
     const log = logger.scoped("createOrg");
 
@@ -20,6 +21,7 @@ export const createOrg = async ({
             name,
             team_size,
             email,
+            password,
         })
         .select()
         .single();
@@ -124,4 +126,33 @@ export const deleteOrg = async (org_id: MappedOrg["org_id"]) => {
     log.info("org-deleted", {
         org_id,
     });
+};
+
+export const loginOrg = async (email: string, password: string) => {
+    const log = logger.scoped("loginOrg");
+
+    try {
+        const { data, error } = await SupabaseService.getSupabase()
+            .from("orgs")
+            .select()
+            .eq("email", email)
+            .eq("password", password)
+            .single();
+
+        if (error) {
+            throw error;
+        }
+
+        log.info("org-login-successful", {
+            data,
+        });
+
+        return data;
+    } catch (error) {
+        log.error("login-org-failed", {
+            email,
+            error,
+        });
+        throw error;
+    }
 };

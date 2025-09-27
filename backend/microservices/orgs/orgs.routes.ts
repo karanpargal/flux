@@ -2,8 +2,19 @@ import { validateQuery } from "../../middlewares";
 import { LoggerService } from "../../services";
 import { MappedOrg } from "../../utils/types/mappers.types";
 import { ResponseWithData } from "../../utils/types/shared.types";
-import { createOrgBody, getOrgParams, updateOrgBody } from "./orgs.schema";
-import { createOrg, deleteOrg, getOrgById, updateOrg } from "./orgs.service";
+import {
+    createOrgBody,
+    getOrgParams,
+    loginBody,
+    updateOrgBody,
+} from "./orgs.schema";
+import {
+    createOrg,
+    deleteOrg,
+    getOrgById,
+    loginOrg,
+    updateOrg,
+} from "./orgs.service";
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
 
@@ -136,8 +147,35 @@ const handleDeleteOrg = async (
     }
 };
 
+// POST /orgs/login - Login organization
+const handleLoginOrg = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    const log = logger.scoped("loginOrg");
+    try {
+        const { email, password } = req.body;
+
+        const data = await log.time("login-org", () =>
+            loginOrg(email, password),
+        );
+
+        return res.json({
+            success: true,
+            data,
+        } satisfies ResponseWithData<MappedOrg>);
+    } catch (error) {
+        log.error("request-failed", {
+            error,
+        });
+        next(error);
+    }
+};
+
 orgsRouter.get("/:org_id", validateQuery("params", getOrgParams), handleGetOrg);
 orgsRouter.post("/", validateQuery("body", createOrgBody), handleCreateOrg);
+orgsRouter.post("/login", validateQuery("body", loginBody), handleLoginOrg);
 orgsRouter.put(
     "/:org_id",
     validateQuery("params", getOrgParams),

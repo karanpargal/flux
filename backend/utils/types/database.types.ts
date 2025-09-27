@@ -63,6 +63,7 @@ export type Database = {
                     multisig_wallet_address: string | null;
                     name: string;
                     org_id: string;
+                    password: string;
                     team_size: number;
                 };
                 Insert: {
@@ -72,6 +73,7 @@ export type Database = {
                     multisig_wallet_address?: string | null;
                     name: string;
                     org_id?: string;
+                    password?: string;
                     team_size: number;
                 };
                 Update: {
@@ -81,6 +83,7 @@ export type Database = {
                     multisig_wallet_address?: string | null;
                     name?: string;
                     org_id?: string;
+                    password?: string;
                     team_size?: number;
                 };
                 Relationships: [];

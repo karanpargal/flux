@@ -10,6 +10,7 @@ export const createOrgBody = yup
         // multisig_wallet_address: evmAddressSchema.nullable(),
         team_size: yup.number().integer().min(1).required(),
         email: yup.string().email().nullable(),
+        password: yup.string().required(),
     })
     .strict()
     .noUnknown()
@@ -32,6 +33,16 @@ export const getOrgParams = yup
     .object()
     .shape({
         org_id: yup.string().uuid().required(),
+    })
+    .strict()
+    .noUnknown()
+    .required();
+
+export const loginBody = yup
+    .object()
+    .shape({
+        email: yup.string().email().required(),
+        password: yup.string().required(),
     })
     .strict()
     .noUnknown()
