@@ -39,32 +39,42 @@ const AVAILABLE_CAPABILITIES = [
         placeholder: "1000000000000000000",
       },
       {
-        name: "refund_chain",
-        displayName: "Default Refund Chain",
-        type: "select",
-        description: "Default blockchain network for refunds",
+        name: "expected_address",
+        displayName: "Expected Address",
+        type: "string",
+        description: "Expected wallet address for refund processing",
         required: false,
-        options: [
-          { value: "ethereum", label: "Ethereum" },
-          { value: "polygon", label: "Polygon" },
-          { value: "bsc", label: "BSC" },
-        ],
-        default: "ethereum",
+        placeholder: "0xc8b05CE83e33524792f720C947c46cBF6bc279Fb",
       },
       {
-        name: "agent_private_key",
-        displayName: "Agent Private Key (Encrypted)",
-        type: "password",
-        description:
-          "Encrypted private key for the agent's wallet to process refunds",
+        name: "custom_api_url",
+        displayName: "Custom API URL",
+        type: "string",
+        description: "Custom API endpoint for refund processing (optional)",
         required: false,
-        placeholder: "Enter encrypted private key",
+        placeholder: "https://api.example.com/refunds",
+      },
+      {
+        name: "custom_api_headers",
+        displayName: "Custom API Headers",
+        type: "string",
+        description: "Custom headers for API requests (JSON format, optional)",
+        required: false,
+        placeholder: '{"Authorization": "Bearer token", "Content-Type": "application/json"}',
+      },
+      {
+        name: "custom_api_field",
+        displayName: "Custom API Field",
+        type: "string",
+        description: "Custom field name for API requests (optional)",
+        required: false,
+        placeholder: "refund_amount",
       },
       {
         name: "escalation_threshold",
         displayName: "Escalation Threshold (in wei)",
         type: "string",
-        description: "Amount above which refunds require human approval",
+        description: "Amount above which refunds require human approval (optional)",
         required: false,
         placeholder: "500000000000000000",
       },
@@ -292,9 +302,9 @@ const AgentForm: React.FC<AgentFormProps> = ({
         capabilities: Object.fromEntries(
           Array.from(enabledCapabilities).map((capability) => [
             capability,
-            true,
+            capabilityConfigs[capability] || true,
           ])
-        ), // Send enabled capabilities as array
+        ), 
       };
 
       const newAgent = await createAgent.execute(
@@ -620,7 +630,7 @@ const AgentForm: React.FC<AgentFormProps> = ({
                                       (capabilityConfigs[capability.name]?.[
                                         param.name
                                       ] ??
-                                        param.default ??
+                                        (param as any).default ??
                                         false) as boolean
                                     }
                                     onChange={(e) =>
@@ -636,7 +646,7 @@ const AgentForm: React.FC<AgentFormProps> = ({
                                     {capabilityConfigs[capability.name]?.[
                                       param.name
                                     ] ??
-                                    param.default ??
+                                    (param as any).default ??
                                     false
                                       ? "Yes"
                                       : "No"}
@@ -648,7 +658,7 @@ const AgentForm: React.FC<AgentFormProps> = ({
                                     (capabilityConfigs[capability.name]?.[
                                       param.name
                                     ] as string) ??
-                                    param.default ??
+                                    (param as any).default ??
                                     ""
                                   }
                                   onChange={(e) =>
@@ -663,7 +673,7 @@ const AgentForm: React.FC<AgentFormProps> = ({
                                   <option value="">
                                     Select {param.displayName}
                                   </option>
-                                  {param.options?.map((option) => (
+                                  {(param as any).options?.map((option: any) => (
                                     <option
                                       key={option.value}
                                       value={option.value}

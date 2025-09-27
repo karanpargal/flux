@@ -11,6 +11,7 @@ export const notifyThirdPartyServer = async (
         name,
         org_id,
         capabilities,
+        file_urls,
     }: Omit<
         MappedAgent,
         "created_at" | "agent_id" | "active" | "ens" | "wallet_address"
@@ -19,14 +20,17 @@ export const notifyThirdPartyServer = async (
     const log = logger.scoped("notifyThirdPartyServer");
 
     try {
-        const thirdPartyUrl =
-            process.env.THIRD_PARTY_SERVER_URL ||
-            "https://api.example.com/agents";
-
-        const response = await fetch(thirdPartyUrl + "/company-agents", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
+            const thirdPartyUrl =
+                process.env.THIRD_PARTY_SERVER_URL ||
+                "https://api.example.com/agents";
+            const refund_config =
+                capabilities && typeof capabilities === "object" && "refund_processing" in capabilities
+                    ? (capabilities as Record<string, unknown>)["refund_processing"]
+                    : null;
+            const response = await fetch(thirdPartyUrl + "/company-agents", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
             },
             body: JSON.stringify({
                 description,
@@ -34,9 +38,10 @@ export const notifyThirdPartyServer = async (
                 company_id: org_id,
                 company_name: org_name,
                 capabilities: capabilities ? Object.keys(capabilities) : [],
-                pdf_document_urls: [],
+                pdf_document_urls: file_urls,
                 support_categories: [],
                 company_products: [],
+                refund_config: refund_config,
             }),
         });
 
@@ -135,10 +140,11 @@ export const createAgent = async (
             }
         }
 
+
         const { agent_id, address, ens_name } = await notifyThirdPartyServer(
             org_name,
             {
-                capabilities,
+                capabilities: JSON.parse(capabilities as string || "{}"),
                 file_urls,
                 resource_urls,
                 name,

@@ -120,47 +120,50 @@ This knowledge base contains your company's official documentation including:
     
     async def generate_company_agent_code(self, agent_config: CompanyAgentCreateRequest) -> str:
         """Generate the company support agent Python code with chat protocol and tools"""
-        webhook_url = agent_config.webhook_url or f"http://localhost:{agent_config.port}/webhook"
-        
-        # Validate capabilities
-        validation_result = self.capability_service.validate_capabilities(agent_config.capabilities)
-        if not validation_result["valid"]:
-            raise HTTPException(
-                status_code=400, 
-                detail=f"Invalid capabilities: {validation_result['invalid_capabilities']}. Available: {validation_result['available_capabilities']}"
+        try:
+            webhook_url = agent_config.webhook_url or f"http://localhost:{agent_config.port}/webhook"
+            print(agent_config)
+            
+            # Validate capabilities
+            validation_result = self.capability_service.validate_capabilities(agent_config.capabilities)
+            print(f"Validation result: {validation_result}")
+            if not validation_result["valid"]:
+                raise HTTPException(
+                    status_code=400, 
+                    detail=f"Invalid capabilities: {validation_result['invalid_capabilities']}. Available: {validation_result['available_capabilities']}"
+                )
+            
+            # Get context from PDF documents
+            document_context = ""
+            if agent_config.pdf_document_urls:
+                document_context = await self.get_pdf_context(agent_config.pdf_document_urls)
+            
+            # Generate support agent system prompt using capability service
+            support_categories = agent_config.support_categories or ["general", "technical", "billing"]
+            company_products = agent_config.company_products or ["products and services"]
+
+            
+            system_prompt = self.capability_service.get_system_prompt_for_capabilities(
+                agent_config.capabilities,
+                agent_config.company_name,
+                support_categories,
+                company_products
             )
-        
-        # Get context from PDF documents
-        document_context = ""
-        if agent_config.pdf_document_urls:
-            document_context = await self.get_pdf_context(agent_config.pdf_document_urls)
-        
-        # Generate support agent system prompt using capability service
-        support_categories = agent_config.support_categories or ["general", "technical", "billing"]
-        company_products = agent_config.company_products or ["products and services"]
 
-        
-        system_prompt = self.capability_service.get_system_prompt_for_capabilities(
-            agent_config.capabilities,
-            agent_config.company_name,
-            support_categories,
-            company_products
-        )
+            
+            # Get tool imports and functions based on capabilities
+            tool_imports = self.capability_service.get_tool_imports_for_capabilities(agent_config.capabilities)
+            tool_functions = self.capability_service.get_tool_functions_for_capabilities(
+                agent_config.capabilities, 
+                agent_config.pdf_document_urls
+            )
 
-        
-        # Get tool imports and functions based on capabilities
-        tool_imports = self.capability_service.get_tool_imports_for_capabilities(agent_config.capabilities)
-        tool_functions = self.capability_service.get_tool_functions_for_capabilities(
-            agent_config.capabilities, 
-            agent_config.pdf_document_urls
-        )
+            
+            # Get available tools for the agent
+            available_tools = self.capability_service.get_tools_for_capabilities(agent_config.capabilities)
 
-        
-        # Get available tools for the agent
-        available_tools = self.capability_service.get_tools_for_capabilities(agent_config.capabilities)
-
-        
-        code = f'''from datetime import datetime
+            
+            code = f'''from datetime import datetime
 from uuid import uuid4
 import os
 import json
@@ -1094,7 +1097,16 @@ with open(agent_address_file, "w") as f:
 if __name__ == "__main__":
     agent.run()
 '''
-        return code
+            return code
+        except HTTPException:
+            # Re-raise HTTPExceptions as they are already properly formatted
+            raise
+        except Exception as e:
+            print(f"❌ Error generating company agent code: {e}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Failed to generate company agent code: {str(e)}"
+            )
     
     
     
@@ -1102,6 +1114,8 @@ if __name__ == "__main__":
         """Create a new company-specific agent"""
         try:
             agent_id = str(uuid.uuid4())
+
+            print(agent_config)
             
             if agent_config.port is None:
                 assigned_port = self.get_next_available_port()
