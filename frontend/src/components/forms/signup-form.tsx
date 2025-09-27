@@ -57,6 +57,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
                 team_size: 1, // Default team size
                 email: values.email,
                 password: values.password,
+                multisig_wallet_address: "", // Default empty wallet address
             };
 
             const newOrg = await createOrganization.execute(orgData);

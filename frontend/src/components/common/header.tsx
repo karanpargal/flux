@@ -6,8 +6,10 @@ import { usePathname } from "next/navigation";
 const Header: React.FC = () => {
     const pathname = usePathname();
     return (
-        <header className={`bg-cream-100 shadow-sm border-b border-stone-300`}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <header
+            className={`bg-cream-100/10 shadow-sm border-b border-stone-300`}
+        >
+            <div className="mx-auto px-4 sm:px-6">
                 <div className="flex justify-between items-center h-16">
                     {/* Logo */}
                     <div className="flex items-center">
@@ -20,43 +22,6 @@ const Header: React.FC = () => {
                     </div>
 
                     {/* Navigation */}
-                    <nav className="hidden md:flex space-x-8">
-                        {pathname === "/dashboard" ? (
-                            <Link
-                                href="/"
-                                className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors"
-                            >
-                                Home
-                            </Link>
-                        ) : (
-                            <>
-                                <a
-                                    href="#features"
-                                    className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors"
-                                >
-                                    Features
-                                </a>
-                                <a
-                                    href="#pricing"
-                                    className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors"
-                                >
-                                    Pricing
-                                </a>
-                                <a
-                                    href="#about"
-                                    className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors"
-                                >
-                                    About
-                                </a>
-                                <a
-                                    href="#contact"
-                                    className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors"
-                                >
-                                    Contact
-                                </a>
-                            </>
-                        )}
-                    </nav>
 
                     {/* CTA Button */}
                     <div className="flex items-center space-x-4">

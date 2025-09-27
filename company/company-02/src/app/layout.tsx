@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/common/header";
-import FloatingChatWidget from "@/components/floating-chat-widget";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -30,15 +29,24 @@ export default function RootLayout({
             <body
                 className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased`}
             >
+                <iframe
+                    src={process.env.NEXT_PUBLIC_SUPPORTIFY_EMBED_URL}
+                    width="350"
+                    height="500"
+                    style={{
+                        position: "fixed",
+                        bottom: "20px",
+                        right: "20px",
+                        borderRadius: "16px",
+                        boxShadow: "0 10px 40px rgba(0,0,0,0.15)",
+                        zIndex: "9999",
+                    }}
+                    title="Support Chat"
+                />
                 <div className="max-w-7xl mx-auto">
                     <Header />
                     <main>{children}</main>
                 </div>
-                <FloatingChatWidget
-                    title="RetroFlow Assistant"
-                    agentId="retroflow-agent"
-                    organizationId="retroflow-org"
-                />
             </body>
         </html>
     );

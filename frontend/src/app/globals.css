@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
@@ -8,6 +9,7 @@
     --color-foreground: var(--foreground);
     --font-sans: Inter, var(--font-geist-sans), Arial, Helvetica, sans-serif;
     --font-mono: var(--font-geist-mono);
+    --font-figtree: "Figtree", sans-serif;
 
     /* Citrus Color Palette */
     --color-citrus-50: #fff8f1;
@@ -152,10 +154,108 @@ body {
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border outline-ring/50;
     }
-  body {
-    @apply bg-background text-foreground;
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+@layer utilities {
+    .font-figtree {
+        font-family: "Figtree", sans-serif;
+    }
+}
+
+/* Custom gradient utilities */
+@layer utilities {
+    .gradient-blue-citrus {
+        background: linear-gradient(135deg, #0000ff 0%, #f06e16 100%);
+    }
+
+    .gradient-blue-citrus-horizontal {
+        background: linear-gradient(90deg, #0000ff 0%, #f06e16 100%);
+    }
+
+    .gradient-blue-citrus-vertical {
+        background: linear-gradient(180deg, #0000ff 0%, #f06e16 100%);
+    }
+
+    .gradient-blue-citrus-radial {
+        background: radial-gradient(circle, #0000ff 0%, #f06e16 100%);
+    }
+
+    /* Text gradient utilities */
+    .text-gradient-blue-citrus {
+        background: linear-gradient(135deg, #0000ff 0%, #f06e16 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .text-gradient-blue-citrus-horizontal {
+        background: linear-gradient(90deg, #fff8f1 30%, #fda556 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .text-gradient-blue-citrus-vertical {
+        background: linear-gradient(90deg, #000000 0%, #f06e16 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    /* Glass Effect Utilities */
+    .glass-effect {
+        background: var(--color-cream-100);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            inset 0 -1px 0 rgba(0, 0, 0, 0.1), 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+            0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+
+    .glass-effect-citrus {
+        background: linear-gradient(
+            135deg,
+            rgba(250, 139, 42, 0.3) 0%,
+            rgba(240, 110, 22, 0.25) 50%,
+            rgba(200, 84, 18, 0.2) 100%
+        );
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(250, 139, 42, 0.4);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2),
+            inset 0 -1px 0 rgba(200, 84, 18, 0.3),
+            0 8px 32px rgba(250, 139, 42, 0.25), 0 4px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .glass-effect-subtle {
+        background: rgba(250, 139, 42, 0.2);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        border: 1px solid rgba(250, 139, 42, 0.3);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            inset 0 -1px 0 rgba(200, 84, 18, 0.2),
+            0 2px 8px rgba(250, 139, 42, 0.15);
+    }
+
+    .glass-effect-strong {
+        background: linear-gradient(
+            135deg,
+            rgba(250, 139, 42, 0.4) 0%,
+            rgba(240, 110, 22, 0.35) 50%,
+            rgba(200, 84, 18, 0.3) 100%
+        );
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(250, 139, 42, 0.5);
+        box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3),
+            inset 0 -2px 0 rgba(200, 84, 18, 0.4),
+            0 12px 40px rgba(250, 139, 42, 0.3), 0 6px 20px rgba(0, 0, 0, 0.2);
     }
 }

@@ -4,7 +4,7 @@ import React, { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AgentForm from "@/components/forms/agent-form";
-import { AgentFormValues } from "@/components/ui/types/form-types";
+import { Agent } from "@/lib/types";
 
 function NewAgentPageContent() {
     const router = useRouter();
@@ -15,7 +15,7 @@ function NewAgentPageContent() {
     const orgId = searchParams.get("orgId");
     const orgName = searchParams.get("orgName") || "Organization";
 
-    const handleFormSubmit = async (values: AgentFormValues) => {
+    const handleFormSubmit = async (values: Agent) => {
         // Form submission is handled by the form component
         console.log("Form submitted with values:", values);
     };
@@ -75,16 +75,6 @@ function NewAgentPageContent() {
                     orgId={orgId}
                     orgName={orgName}
                 />
-
-                {/* Cancel Button */}
-                <div className="mt-4 text-center">
-                    <Link
-                        href={`/dashboard?orgId=${orgId}`}
-                        className="inline-block px-6 py-3 border border-stone-300 text-stone-500 rounded-md hover:bg-stone-50 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"
-                    >
-                        ← Back to Dashboard
-                    </Link>
-                </div>
             </div>
         </div>
     );

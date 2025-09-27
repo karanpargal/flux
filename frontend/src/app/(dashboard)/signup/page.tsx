@@ -15,17 +15,21 @@ export default function SignupPage() {
         }
     };
     return (
-        <section className="grid grid-cols-1 lg:grid-cols-2">
-            <div className="flex flex-col">
-                <h1>Signup</h1>
-                <p>
-                    Lorem ipsum dolor sit amet consectetur adipisicing elit.
-                    Quisquam, quos.
-                </p>
-            </div>
-            <div className="flex justify-center lg:justify-end">
-                <div className="w-full max-w-md">
-                    <SignUpForm onSubmit={handleSignUp} />
+        <section className="flex items-center justify-center min-h-screen p-8">
+            <div className="glass-effect-citrus rounded-3xl p-8 w-full max-w-6xl">
+                <div className="grid grid-cols-1 items-start lg:grid-cols-2 gap-8">
+                    <div className="flex flex-col gap-y-10">
+                        <h1 className="text-5xl font-bold text-gradient-blue-citrus-vertical">
+                            Welcome to Supportify
+                        </h1>
+                        <p className="text-2xl text-stone-500 leading-relaxed">
+                            Create your account and start building amazing
+                            AI-powered support experiences for your customers.
+                        </p>
+                    </div>
+                    <div className="w-full">
+                        <SignUpForm onSubmit={handleSignUp} />
+                    </div>
                 </div>
             </div>
         </section>
