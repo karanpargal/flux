@@ -30,19 +30,19 @@ class RefundProcessor:
         # Chain configurations
         self.chain_configs = {
             'ethereum': {
-                'rpc_url': os.getenv('ETHEREUM_RPC_URL', 'https://eth.llamarpc.com'),
-                'chain_id': 1,
+                'rpc_url': os.getenv('ETHEREUM_RPC_URL', 'https://sepolia.gateway.tenderly.co'),
+                'chain_id': 11155111,
                 'native_token': 'ETH'
             },
             'polygon': {
-                'rpc_url': os.getenv('POLYGON_RPC_URL', 'https://polygon-mainnet.g.alchemy.com/v2/demo'),
-                'chain_id': 137,
-                'native_token': 'MATIC'
+                'rpc_url': os.getenv('POLYGON_RPC_URL', 'https://polygon-amoy-bor-rpc.publicnode.com'),
+                'chain_id': 80002,
+                'native_token': 'AMOY'
             },
             'bsc': {
-                'rpc_url': os.getenv('BSC_RPC_URL', 'https://bsc-dataseed.binance.org/'),
-                'chain_id': 56,
-                'native_token': 'BNB'
+                'rpc_url': os.getenv('BASE_RPC_URL', 'https://sepolia.base.org'),
+                'chain_id': 84532,
+                'native_token': 'ETH'
             }
         }
     

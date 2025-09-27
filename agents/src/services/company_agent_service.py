@@ -14,11 +14,13 @@ from ..models.agent_models import (
     AgentDiscoveryResponse,
     AgentMessageRequest,
     AgentMessageResponse,
-    MailboxMessage
+    MailboxMessage,
+    AgentWalletInfo
 )
 from .process_service import ProcessService
 from .pdf_service import PDFService
 from .capability_service import CapabilityService
+from .wallet_service import get_wallet_service
 from ..config import get_settings
 from ..tools.pdf_reader import PDFReader
 from ..tools.transaction_verifier import verify_transaction, get_transaction_verification_schema
@@ -32,6 +34,7 @@ class CompanyAgentService:
         self.process_service = ProcessService()
         self.pdf_service = PDFService()
         self.capability_service = CapabilityService()
+        self.wallet_service = get_wallet_service()
         self.settings = get_settings()
         self.client = httpx.AsyncClient(timeout=30.0)
         self.port_mapping: Dict[str, int] = {}
@@ -835,6 +838,21 @@ if __name__ == "__main__":
             
             self.port_mapping[agent_id] = assigned_port
             
+            print(f"🔨 Creating wallet for agent: {agent_config.agent_name}")
+            try:
+                wallet_info = await self.wallet_service.create_agent_wallet(
+                    agent_name=agent_config.agent_name,
+                    company_name=agent_config.company_name,
+                    agent_id=agent_id,
+                    chain='ethereum' 
+                )
+                print(f"✅ Wallet created for agent {agent_config.agent_name}: {wallet_info['address']}")
+                if wallet_info.get('ens_name'):
+                    print(f"🌐 ENS name: {wallet_info['ens_name']}")
+            except Exception as wallet_error:
+                print(f"⚠️ Wallet creation failed: {str(wallet_error)}")
+                wallet_info = None
+            
             agent_code = await self.generate_company_agent_code(agent_config)
             
             filepath = self.save_company_agent_file(agent_id, agent_code)
@@ -870,8 +888,13 @@ if __name__ == "__main__":
                 "pdf_document_urls": agent_config.pdf_document_urls or [],
                 "support_categories": agent_config.support_categories or [],
                 "company_products": agent_config.company_products or [],
-                "company_address": agent_config.company_address
+                "company_address": agent_config.company_address,
+                "wallet_info": wallet_info 
             }
+            
+            wallet_info_model = None
+            if wallet_info:
+                wallet_info_model = AgentWalletInfo(**wallet_info)
             
             return CompanyAgentResponse(
                 agent_id=agent_id,
@@ -889,7 +912,8 @@ if __name__ == "__main__":
                 pdf_document_urls=agent_config.pdf_document_urls,
                 support_categories=agent_config.support_categories,
                 company_products=agent_config.company_products,
-                company_address=agent_config.company_address
+                company_address=agent_config.company_address,
+                wallet_info=wallet_info_model
             )
             
         except HTTPException:
@@ -923,6 +947,11 @@ if __name__ == "__main__":
                 else:
                     agent_info["status"] = "stopped"
             
+            wallet_info_model = None
+            wallet_info = agent_info.get("wallet_info")
+            if wallet_info:
+                wallet_info_model = AgentWalletInfo(**wallet_info)
+            
             agents.append(CompanyAgentResponse(
                 agent_id=agent_id,
                 company_id=agent_info["company_id"],
@@ -939,7 +968,8 @@ if __name__ == "__main__":
                 pdf_document_urls=agent_info.get("pdf_document_urls", []),
                 support_categories=agent_info.get("support_categories", []),
                 company_products=agent_info.get("company_products", []),
-                company_address=agent_info.get("company_address")
+                company_address=agent_info.get("company_address"),
+                wallet_info=wallet_info_model
             ))
         
         return agents
@@ -1020,6 +1050,12 @@ if __name__ == "__main__":
             else:
                 agent_info["status"] = "stopped"
         
+        # Convert wallet_info to AgentWalletInfo if available
+        wallet_info_model = None
+        wallet_info = agent_info.get("wallet_info")
+        if wallet_info:
+            wallet_info_model = AgentWalletInfo(**wallet_info)
+        
         return CompanyAgentResponse(
             agent_id=agent_id,
             company_id=agent_info["company_id"],
@@ -1036,7 +1072,8 @@ if __name__ == "__main__":
             pdf_document_urls=agent_info.get("pdf_document_urls", []),
             support_categories=agent_info.get("support_categories", []),
             company_products=agent_info.get("company_products", []),
-            company_address=agent_info.get("company_address")
+            company_address=agent_info.get("company_address"),
+            wallet_info=wallet_info_model
         )
     
     async def delete_company_agent(self, agent_id: str) -> Dict[str, str]:
@@ -1077,6 +1114,12 @@ if __name__ == "__main__":
                 active_count += 1
                 uptime = self.process_service.get_process_uptime(agent_info["process_id"])
             
+            # Convert wallet_info to AgentWalletInfo if available
+            wallet_info_model = None
+            wallet_info = agent_info.get("wallet_info")
+            if wallet_info:
+                wallet_info_model = AgentWalletInfo(**wallet_info)
+            
             agent_statuses.append(CompanyAgentStatusResponse(
                 agent_id=agent_id,
                 company_id=agent_info["company_id"],
@@ -1087,7 +1130,9 @@ if __name__ == "__main__":
                 address=agent_info["address"],
                 process_id=agent_info.get("process_id"),
                 uptime=uptime,
-                capabilities=agent_info.get("capabilities", [])
+                capabilities=agent_info.get("capabilities", []),
+                company_address=agent_info.get("company_address"),
+                wallet_info=wallet_info_model
             ))
         
         return {

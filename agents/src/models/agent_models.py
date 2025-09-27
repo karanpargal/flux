@@ -54,6 +54,24 @@ class AgentResponse(BaseModel):
     process_id: Optional[int] = None
 
 
+class AgentWalletInfo(BaseModel):
+    """Model for agent wallet information"""
+    address: str
+    encrypted_private_key: str
+    chain: str
+    chain_id: int
+    native_token: str
+    created_at: str
+    balance: str = "0"
+    ens_name: Optional[str] = None
+    ens_registered: bool = False
+    ens_registration_status: Optional[str] = None
+    agent_id: str
+    agent_name: str
+    company_name: str
+    wallet_purpose: str = "agent_operations"
+
+
 class CompanyAgentResponse(BaseModel):
     """Response model for company support agent information"""
     agent_id: str
@@ -72,6 +90,7 @@ class CompanyAgentResponse(BaseModel):
     support_categories: Optional[List[str]] = None
     company_products: Optional[List[str]] = None
     company_address: Optional[str] = None
+    wallet_info: Optional[AgentWalletInfo] = None
 
 
 class AgentStatusResponse(BaseModel):
@@ -98,6 +117,7 @@ class CompanyAgentStatusResponse(BaseModel):
     uptime: Optional[str] = None
     capabilities: List[str] = []
     company_address: Optional[str] = None
+    wallet_info: Optional[AgentWalletInfo] = None
 
 
 class HealthResponse(BaseModel):
