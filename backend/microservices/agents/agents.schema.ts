@@ -63,3 +63,41 @@ export const updateActiveStatusBody = yup
     .strict()
     .noUnknown()
     .required();
+
+export const deleteFileParams = yup
+    .object()
+    .shape({
+        agent_id: yup.string().trim().required(),
+        file_url: yup.string().trim().required(),
+    })
+    .strict()
+    .noUnknown()
+    .required();
+
+export const removeResourceParams = yup
+    .object()
+    .shape({
+        agent_id: yup.string().trim().required(),
+        resource_url: yup.string().trim().required(),
+    })
+    .strict()
+    .noUnknown()
+    .required();
+
+export const addResourceUrlsBody = yup
+    .object()
+    .shape({
+        resource_urls: yup.array().of(yup.string().trim()).min(1).required(),
+    })
+    .strict()
+    .noUnknown()
+    .required();
+
+export const addResourceUrlsParams = yup
+    .object()
+    .shape({
+        agent_id: yup.string().trim().required(),
+    })
+    .strict()
+    .noUnknown()
+    .required();

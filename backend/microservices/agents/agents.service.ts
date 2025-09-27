@@ -466,3 +466,196 @@ export const uploadFilesToSupabase = async (
 
     return results;
 };
+
+export const deleteUploadedFile = async (
+    agent_id: string,
+    file_url: string,
+) => {
+    const log = logger.scoped("deleteUploadedFile");
+
+    try {
+        // Get current agent data
+        const agent = await getAgentById(agent_id);
+
+        // Remove the file URL from the agent's file_urls array
+        const currentFileUrls = agent?.file_urls || [];
+        const updatedFileUrls = currentFileUrls.filter(
+            (url) => url !== file_url,
+        );
+
+        if (currentFileUrls.length === updatedFileUrls.length) {
+            log.warn("file-url-not-found", {
+                agent_id,
+                file_url,
+            });
+            throw new Error("File URL not found in agent's file list");
+        }
+
+        // Extract the file path from the public URL for storage deletion
+        // The file URL format is: https://[project].supabase.co/storage/v1/object/public/supportify/[org_id]/[agent_id]/[file_name]
+        const urlParts = file_url.split("/");
+        const storagePath = urlParts
+            .slice(urlParts.indexOf("supportify") + 1)
+            .join("/");
+
+        // Delete the file from Supabase storage
+        const { error: storageError } = await SupabaseService.getSupabase()
+            .storage.from("supportify")
+            .remove([storagePath]);
+
+        if (storageError) {
+            log.warn("storage-deletion-failed", {
+                agent_id,
+                file_url,
+                storagePath,
+                error: storageError,
+            });
+            // Continue with database update even if storage deletion fails
+        } else {
+            log.info("file-deleted-from-storage", {
+                agent_id,
+                file_url,
+                storagePath,
+            });
+        }
+
+        // Update the agent with the new file_urls array
+        const { data, error } = await SupabaseService.getSupabase()
+            .from("agents")
+            .update({ file_urls: updatedFileUrls })
+            .eq("agent_id", agent_id)
+            .select()
+            .single();
+
+        if (error) {
+            log.error("update-file-urls-failed", {
+                agent_id,
+                file_url,
+                error,
+            });
+            throw error;
+        }
+
+        log.info("file-url-removed", {
+            agent_id,
+            file_url,
+            remainingFiles: updatedFileUrls.length,
+        });
+
+        return data;
+    } catch (error) {
+        log.error("delete-uploaded-file-failed", {
+            agent_id,
+            file_url,
+            error,
+        });
+        throw error;
+    }
+};
+
+export const removeResourceUrl = async (
+    agent_id: string,
+    resource_url: string,
+) => {
+    const log = logger.scoped("removeResourceUrl");
+
+    try {
+        // Get current agent data
+        const agent = await getAgentById(agent_id);
+
+        // Remove the resource URL from the agent's resource_urls array
+        const currentResourceUrls = agent.resource_urls || [];
+        const updatedResourceUrls = currentResourceUrls.filter(
+            (url) => url !== resource_url,
+        );
+
+        if (currentResourceUrls.length === updatedResourceUrls.length) {
+            log.warn("resource-url-not-found", {
+                agent_id,
+                resource_url,
+            });
+            throw new Error("Resource URL not found in agent's resource list");
+        }
+
+        // Update the agent with the new resource_urls array
+        const { data, error } = await SupabaseService.getSupabase()
+            .from("agents")
+            .update({ resource_urls: updatedResourceUrls })
+            .eq("agent_id", agent_id)
+            .select()
+            .single();
+
+        if (error) {
+            log.error("update-resource-urls-failed", {
+                agent_id,
+                resource_url,
+                error,
+            });
+            throw error;
+        }
+
+        log.info("resource-url-removed", {
+            agent_id,
+            resource_url,
+            remainingResources: updatedResourceUrls.length,
+        });
+
+        return data;
+    } catch (error) {
+        log.error("remove-resource-url-failed", {
+            agent_id,
+            resource_url,
+            error,
+        });
+        throw error;
+    }
+};
+
+export const addResourceUrls = async (
+    agent_id: string,
+    newResourceUrls: string[],
+) => {
+    const log = logger.scoped("addResourceUrls");
+
+    try {
+        // Get current agent data
+        const agent = await getAgentById(agent_id);
+
+        // Merge new resource URLs with existing ones, avoiding duplicates
+        const currentResourceUrls = agent.resource_urls || [];
+        const urlSet = new Set([...currentResourceUrls, ...newResourceUrls]);
+        const updatedResourceUrls = Array.from(urlSet);
+
+        // Update the agent with the new resource_urls array
+        const { data, error } = await SupabaseService.getSupabase()
+            .from("agents")
+            .update({ resource_urls: updatedResourceUrls })
+            .eq("agent_id", agent_id)
+            .select()
+            .single();
+
+        if (error) {
+            log.error("update-resource-urls-failed", {
+                agent_id,
+                newResourceUrls,
+                error,
+            });
+            throw error;
+        }
+
+        log.info("resource-urls-added", {
+            agent_id,
+            newResourceUrls,
+            totalResources: updatedResourceUrls.length,
+        });
+
+        return data;
+    } catch (error) {
+        log.error("add-resource-urls-failed", {
+            agent_id,
+            newResourceUrls,
+            error,
+        });
+        throw error;
+    }
+};

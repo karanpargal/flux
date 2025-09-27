@@ -3,18 +3,25 @@ import { LoggerService } from "../../services";
 import { MappedAgent } from "../../utils/types/mappers.types";
 import { ResponseWithData } from "../../utils/types/shared.types";
 import {
+    addResourceUrlsBody,
+    addResourceUrlsParams,
     createAgentBody,
+    deleteFileParams,
     getAgentParams,
     getAgentsForOrgParams,
+    removeResourceParams,
     updateActiveStatusBody,
     updateAgentBody,
     uploadFileParams,
 } from "./agents.schema";
 import {
+    addResourceUrls,
     createAgent,
     deleteAgent,
+    deleteUploadedFile,
     getAgentById,
     getAgentsForOrg,
+    removeResourceUrl,
     updateAgent,
     updateAgentActiveStatus,
     uploadFilesToSupabase,
@@ -280,6 +287,85 @@ const handleUpdateActiveStatus = async (
     }
 };
 
+// DELETE /agents/:agent_id/files/:file_url - Delete uploaded file
+const handleDeleteUploadedFile = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    const log = logger.scoped("deleteUploadedFile");
+    try {
+        const { agent_id, file_url } = req.params;
+
+        const data = await log.time("delete-uploaded-file", () =>
+            deleteUploadedFile(agent_id, file_url),
+        );
+
+        return res.json({
+            success: true,
+            data,
+        } satisfies ResponseWithData<MappedAgent>);
+    } catch (error) {
+        log.error("request-failed", {
+            error,
+        });
+        next(error);
+    }
+};
+
+// DELETE /agents/:agent_id/resources/:resource_url - Remove resource URL
+const handleRemoveResourceUrl = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    const log = logger.scoped("removeResourceUrl");
+    try {
+        const { agent_id, resource_url } = req.params;
+
+        const data = await log.time("remove-resource-url", () =>
+            removeResourceUrl(agent_id, resource_url),
+        );
+
+        return res.json({
+            success: true,
+            data,
+        } satisfies ResponseWithData<MappedAgent>);
+    } catch (error) {
+        log.error("request-failed", {
+            error,
+        });
+        next(error);
+    }
+};
+
+// POST /agents/:agent_id/resources - Add multiple resource URLs
+const handleAddResourceUrls = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+) => {
+    const log = logger.scoped("addResourceUrls");
+    try {
+        const { agent_id } = req.params;
+        const { resource_urls } = req.body;
+
+        const data = await log.time("add-resource-urls", () =>
+            addResourceUrls(agent_id, resource_urls),
+        );
+
+        return res.status(201).json({
+            success: true,
+            data,
+        } satisfies ResponseWithData<MappedAgent>);
+    } catch (error) {
+        log.error("request-failed", {
+            error,
+        });
+        next(error);
+    }
+};
+
 agentsRouter.get(
     "/:agent_id",
     validateQuery("params", getAgentParams),
@@ -318,4 +404,20 @@ agentsRouter.patch(
     validateQuery("params", getAgentParams),
     validateQuery("body", updateActiveStatusBody),
     handleUpdateActiveStatus,
+);
+agentsRouter.delete(
+    "/:agent_id/files/:file_url",
+    validateQuery("params", deleteFileParams),
+    handleDeleteUploadedFile,
+);
+agentsRouter.delete(
+    "/:agent_id/resources/:resource_url",
+    validateQuery("params", removeResourceParams),
+    handleRemoveResourceUrl,
+);
+agentsRouter.post(
+    "/:agent_id/resources",
+    validateQuery("params", addResourceUrlsParams),
+    validateQuery("body", addResourceUrlsBody),
+    handleAddResourceUrls,
 );
