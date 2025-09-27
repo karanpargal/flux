@@ -191,6 +191,55 @@ client = OpenAI(
     api_key=os.getenv("ASI_API_KEY"),  
 )
 
+ASI_ONE_MODELS = {{
+    "asi1-mini": {{
+        "description": "Fast responses, general chat",
+        "use_case": "Standard OpenAI parameters",
+        "requires_session": False
+    }},
+    "asi1-fast": {{
+        "description": "Ultra-low latency",
+        "use_case": "Standard OpenAI parameters", 
+        "requires_session": False
+    }},
+    "asi1-extended": {{
+        "description": "Complex reasoning",
+        "use_case": "Standard OpenAI parameters",
+        "requires_session": False
+    }},
+    "asi1-agentic": {{
+        "description": "Agent orchestration",
+        "use_case": "Requires x-session-id header",
+        "requires_session": True
+    }},
+    "asi1-fast-agentic": {{
+        "description": "Real-time agents",
+        "use_case": "Requires x-session-id header",
+        "requires_session": True
+    }},
+    "asi1-extended-agentic": {{
+        "description": "Complex workflows",
+        "use_case": "Requires x-session-id header", 
+        "requires_session": True
+    }},
+    "asi1-graph": {{
+        "description": "Data visualization",
+        "use_case": "Standard OpenAI parameters",
+        "requires_session": False
+    }}
+}}
+
+def validate_model_and_session(model: str, session_id: str = None) -> tuple[bool, str]:
+    """Validate model selection and session requirements according to ASI:One documentation"""
+    if model not in ASI_ONE_MODELS:
+        return False, f"Unknown model '{{model}}'. Available models: {{', '.join(ASI_ONE_MODELS.keys())}}"
+    
+    model_info = ASI_ONE_MODELS[model]
+    if model_info["requires_session"] and not session_id:
+        return False, f"Model '{{model}}' requires x-session-id header for agentic capabilities"
+    
+    return True, f"Model '{{model}}' validated successfully"
+
 # REST API Models
 class RestRequest(Model):
     text: str
@@ -204,13 +253,20 @@ class RestResponse(Model):
     status: str = "success"
     metadata: Dict[str, Any] = {{}}
 
-# Chat Protocol Models for ASI1 LLM
+# Chat Protocol Models for ASI:One LLM (OpenAI Compatible)
 class ChatRequest(Model):
     messages: List[Dict[str, Any]]
     model: str = "asi1-fast"
     temperature: float = 0.7
     max_tokens: int = 1000
+    top_p: float = 1.0
+    frequency_penalty: float = 0.0
+    presence_penalty: float = 0.0
     stream: bool = False
+    web_search: bool = False
+    # ASI:One specific parameters
+    extra_body: Dict[str, Any] = {{}}
+    extra_headers: Dict[str, str] = {{}}
 
 class ChatResponse(Model):
     id: str
@@ -219,6 +275,10 @@ class ChatResponse(Model):
     model: str
     choices: List[Dict[str, Any]]
     usage: Dict[str, Any] = {{}}
+    # ASI:One specific response fields
+    executable_data: Dict[str, Any] = {{}}
+    intermediate_steps: List[Dict[str, Any]] = []
+    thought: str = ""
 
 SEED_PHRASE = "{agent_config.seed_phrase or 'default_seed_phrase' + f"{time.time()}"}"
 COMPANY_ID = "{agent_config.company_id}"
@@ -464,7 +524,41 @@ async def handle_rest_get(ctx: Context) -> Dict[str, Any]:
             "company_id": COMPANY_ID,
             "company_name": COMPANY_NAME,
             "agent_name": AGENT_NAME,
-            "capabilities": {agent_config.capabilities}
+            "capabilities": {agent_config.capabilities},
+            "openai_compatibility": True,
+            "asi_one_models": ASI_ONE_MODELS,
+            "endpoints": {{
+                "/chat/completions": "OpenAI-compatible chat completions with ASI:One features",
+                "/rest/post": "Company-specific request processing",
+                "/models": "Available ASI:One models information"
+            }}
+        }}
+    }}
+
+@agent.on_rest_get("/models", RestResponse)
+async def handle_models_get(ctx: Context) -> Dict[str, Any]:
+    """Handle GET requests for available models information"""
+    ctx.logger.info("Received models information request")
+    return {{
+        "timestamp": int(time.time()),
+        "text": "Available ASI:One models for OpenAI-compatible API",
+        "agent_address": ctx.agent.address,
+        "status": "success",
+        "metadata": {{
+            "models": ASI_ONE_MODELS,
+            "default_model": "asi1-fast",
+            "recommended_models": {{
+                "general_chat": "asi1-mini",
+                "low_latency": "asi1-fast", 
+                "complex_reasoning": "asi1-extended",
+                "agent_workflows": "asi1-agentic",
+                "data_visualization": "asi1-graph"
+            }},
+            "usage_notes": {{
+                "agentic_models": "Require x-session-id header for session persistence",
+                "web_search": "Enable with extra_body: {{'web_search': True}}",
+                "streaming": "Supported with stream: true parameter"
+            }}
         }}
     }}
 
@@ -499,11 +593,55 @@ async def handle_rest_post(ctx: Context, req: RestRequest) -> RestResponse:
 
 @agent.on_rest_post("/chat/completions", ChatRequest, ChatResponse)
 async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatResponse:
-    """Handle chat completions for ASI1 LLM compatibility"""
-    ctx.logger.info("Received chat completion request")
+    """Handle OpenAI-compatible chat completions for ASI:One LLM"""
+    ctx.logger.info(f"Received chat completion request for model: {{req.model}}")
+    
+    # Extract session ID from headers if present (for agentic models)
+    session_id = req.extra_headers.get("x-session-id")
+    if session_id:
+        ctx.logger.info(f"Using session ID: {{session_id}}")
+    
+    # Validate model and session requirements
+    is_valid, validation_message = validate_model_and_session(req.model, session_id)
+    if not is_valid:
+        ctx.logger.warning(f"Model validation failed: {{validation_message}}")
+        return ChatResponse(
+            id=str(uuid4()),
+            created=int(time.time()),
+            model=req.model,
+            choices=[{{
+                "index": 0,
+                "message": {{
+                    "role": "assistant",
+                    "content": f"Model validation error: {{validation_message}}"
+                }},
+                "finish_reason": "error"
+            }}],
+            usage={{"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}},
+            executable_data={{}},
+            intermediate_steps=[],
+            thought=""
+        )
+    else:
+        ctx.logger.info(validation_message)
+    
     try:
-        # Process the chat messages
-        response_content = await process_chat_messages(req.messages, req.model)
+        # Process the chat messages with enhanced parameters
+        response_content, intermediate_steps, thought = await process_chat_messages_enhanced(
+            req.messages, 
+            req.model,
+            temperature=req.temperature,
+            max_tokens=req.max_tokens,
+            top_p=req.top_p,
+            frequency_penalty=req.frequency_penalty,
+            presence_penalty=req.presence_penalty,
+            web_search=req.web_search or req.extra_body.get("web_search", False),
+            session_id=session_id
+        )
+        
+        # Calculate token usage (approximate)
+        prompt_tokens = sum(len(str(msg.get("content", ""))) for msg in req.messages) // 4
+        completion_tokens = len(response_content) // 4
         
         return ChatResponse(
             id=str(uuid4()),
@@ -518,13 +656,22 @@ async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatRespons
                 "finish_reason": "stop"
             }}],
             usage={{
-                "prompt_tokens": len(str(req.messages)),
-                "completion_tokens": len(response_content),
-                "total_tokens": len(str(req.messages)) + len(response_content)
-            }}
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": prompt_tokens + completion_tokens
+            }},
+            # ASI:One specific fields
+            executable_data={{
+                "agent_calls": [],
+                "tool_calls": []
+            }},
+            intermediate_steps=intermediate_steps if intermediate_steps else [],
+            thought=thought if thought else ""
         )
     except Exception as e:
         error_message = f"Error processing chat request: {{str(e)}}"
+        ctx.logger.error(f"Chat completion error: {{e}}")
+        
         return ChatResponse(
             id=str(uuid4()),
             created=int(time.time()),
@@ -535,9 +682,12 @@ async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatRespons
                     "role": "assistant",
                     "content": error_message
                 }},
-                "finish_reason": "stop"
+                "finish_reason": "error"
             }}],
-            usage={{"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}}
+            usage={{"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}},
+            executable_data={{}},
+            intermediate_steps=[],
+            thought=""
         )
 
 async def process_company_request(message: str, sender_company_id: str) -> str:
@@ -682,25 +832,79 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
         return f"Error processing request: {{str(e)}}"
 
 async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> str:
-    """Process chat messages for ASI:One with tool calling"""
+    """Process chat messages for ASI:One with tool calling (legacy function)"""
+    result, _, _ = await process_chat_messages_enhanced(messages, model)
+    return result
+
+async def process_chat_messages_enhanced(
+    messages: List[Dict[str, Any]], 
+    model: str,
+    temperature: float = 0.7,
+    max_tokens: int = 2000,
+    top_p: float = 1.0,
+    frequency_penalty: float = 0.0,
+    presence_penalty: float = 0.0,
+    web_search: bool = False,
+    session_id: str = None
+) -> tuple[str, List[Dict[str, Any]], str]:
+    """Enhanced chat messages processing with full OpenAI compatibility and ASI:One features"""
     try:
-        # Add system message for company context
-        system_message = {{
-            "role": "system", 
-            "content": system_prompt
+        # Check if messages already have a system message
+        has_system_message = any(msg.get("role") == "system" for msg in messages)
+        
+        if has_system_message:
+            # Use existing messages as-is, but enhance the first system message
+            all_messages = []
+            for i, msg in enumerate(messages):
+                if msg.get("role") == "system" and i == 0:
+                    # Enhance the existing system message with company context
+                    enhanced_content = msg.get("content", "") + "\\n\\n" + system_prompt
+                    if not web_search:
+                        enhanced_content += document_context
+                    all_messages.append({{
+                        "role": "system",
+                        "content": enhanced_content
+                    }})
+                else:
+                    all_messages.append(msg)
+        else:
+            # Add system message for company context
+            system_message = {{
+                "role": "system", 
+                "content": system_prompt + (document_context if not web_search else "")
+            }}
+            # Combine system message with user messages
+            all_messages = [system_message] + messages
+        
+        # Prepare request parameters with full OpenAI compatibility
+        request_params = {{
+            "model": model,
+            "messages": all_messages,
+            "tools": get_available_tools(),
+            "tool_choice": "auto",
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "top_p": top_p,
+            "frequency_penalty": frequency_penalty,
+            "presence_penalty": presence_penalty,
         }}
         
-        # Combine system message with user messages
-        all_messages = [system_message] + messages
+        # Add ASI:One specific parameters
+        if web_search:
+            request_params["extra_body"] = {{"web_search": True}}
+        
+        # Add session support for agentic models
+        if session_id and "agentic" in model.lower():
+            request_params["extra_headers"] = {{"x-session-id": session_id}}
+        
+        print(f"🤖 Making ASI:One request with model: {{model}}")
+        if session_id:
+            print(f"🆔 Session ID: {{session_id}}")
+        if web_search:
+            print(f"🔍 Web search enabled")
         
         # First request with tools and parallel execution support
-        r = client.chat.completions.create(
-            model=model,
-            messages=all_messages,
-            tools=get_available_tools(),
-            tool_choice="auto",
-            max_tokens=2000,
-        )
+        r = client.chat.completions.create(**request_params)
         
         message_obj = r.choices[0].message
         
@@ -815,14 +1019,54 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
                 model=model,
                 messages=follow_up_messages,
                 tools=get_available_tools(),
-                max_tokens=2000,
+                max_tokens=max_tokens,
+                temperature=temperature,
+                top_p=top_p,
+                frequency_penalty=frequency_penalty,
+                presence_penalty=presence_penalty,
             )
-            return str(final_response.choices[0].message.content)
+            
+            final_message = final_response.choices[0].message
+            response_content = str(final_message.content)
+            
+            # Extract ASI:One specific fields if available
+            intermediate_steps = []
+            thought = ""
+            
+            # Check for ASI:One specific response fields
+            if hasattr(final_response, 'intermediate_steps') and final_response.intermediate_steps:
+                intermediate_steps = final_response.intermediate_steps
+            if hasattr(final_response, 'thought') and final_response.thought:
+                thought = str(final_response.thought)
+            
+            # Create intermediate steps from tool calls for transparency
+            for i, tool_call in enumerate(message_obj.tool_calls):
+                intermediate_steps.append({{
+                    "step": i + 1,
+                    "action": tool_call.function.name,
+                    "input": json.loads(tool_call.function.arguments),
+                    "output": tool_results[i]["content"] if i < len(tool_results) else "No output"
+                }})
+            
+            return response_content, intermediate_steps, thought
         else:
-            return str(message_obj.content)
+            # No tool calls, direct response
+            response_content = str(message_obj.content)
+            
+            # Extract ASI:One specific fields if available
+            intermediate_steps = []
+            thought = ""
+            
+            if hasattr(r, 'intermediate_steps') and r.intermediate_steps:
+                intermediate_steps = r.intermediate_steps
+            if hasattr(r, 'thought') and r.thought:
+                thought = str(r.thought)
+            
+            return response_content, intermediate_steps, thought
             
     except Exception as e:
-        return f"Error processing chat request: {{str(e)}}"
+        error_msg = f"Error processing chat request: {{str(e)}}"
+        return error_msg, [], f"Error occurred: {{str(e)}}"
 
 async def send_webhook_notification(response: str, sender_company_id: str):
     """Send webhook notification to company's system"""
