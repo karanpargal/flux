@@ -1,3 +1,5 @@
+import { AgentFormValues } from "./form-types";
+
 export interface LandingPageProps {
     className?: string;
 }
@@ -13,7 +15,10 @@ export interface DashboardPageProps {
 
 export interface AgentFormProps {
     onSubmit: (values: AgentFormValues) => void;
+    onSuccess?: (agent: any) => void;
     className?: string;
+    orgId?: string;
+    orgName?: string;
 }
 
 export interface AgentCardProps {
@@ -35,12 +40,4 @@ export interface Agent {
     createdAt: string;
     updatedAt: string;
     queriesSolved?: number;
-}
-
-export interface AgentFormValues {
-    name: string;
-    description: string;
-    agentType: string;
-    capabilities: string;
-    context: string;
 }

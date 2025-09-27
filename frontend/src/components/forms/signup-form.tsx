@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
 import { SignUpFormProps, SignUpFormValues } from "../ui/types/form-types";
+import { useCreateOrganization } from "../../lib/hooks";
 
 const organizationTypes = [
     { value: "startup", label: "Startup" },
@@ -45,6 +46,30 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
         resolver: yupResolver(validationSchema),
     });
 
+    const createOrganization = useCreateOrganization();
+
+    const handleFormSubmit = async (values: SignUpFormValues) => {
+        try {
+            // Create organization with the form data
+            const orgData = {
+                name: values.organizationName,
+                industry: "Tech" as const,
+                team_size: 1, // Default team size
+                email: values.email,
+                password: values.password,
+            };
+
+            const newOrg = await createOrganization.execute(orgData);
+
+            onSubmit({
+                ...values,
+                organizationId: newOrg.org_id,
+            });
+        } catch (error) {
+            console.error("Failed to create organization:", error);
+        }
+    };
+
     return (
         <div className={`bg-cream-100 p-8 rounded-lg shadow-lg ${className}`}>
             <div className="mb-6">
@@ -56,7 +81,10 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
                 </p>
             </div>
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+            <form
+                onSubmit={handleSubmit(handleFormSubmit)}
+                className="space-y-6"
+            >
                 {/* Organization Name */}
                 <div>
                     <label
@@ -164,13 +192,24 @@ const SignUpForm: React.FC<SignUpFormProps> = ({
                     )}
                 </div>
 
+                {/* Error Display */}
+                {createOrganization.error && (
+                    <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+                        <p className="text-sm text-red-600">
+                            {createOrganization.error}
+                        </p>
+                    </div>
+                )}
+
                 {/* Submit Button */}
                 <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || createOrganization.loading}
                     className="w-full bg-citrus-500 hover:bg-citrus-600 disabled:bg-citrus-400 text-white font-medium py-2 px-4 rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:ring-offset-2"
                 >
-                    {isSubmitting ? "Creating Account..." : "Create Account"}
+                    {isSubmitting || createOrganization.loading
+                        ? "Creating Account..."
+                        : "Create Account"}
                 </button>
 
                 {/* Terms and Privacy */}

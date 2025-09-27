@@ -66,9 +66,12 @@ const Header: React.FC = () => {
                             </button>
                         ) : (
                             <>
-                                <button className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors">
+                                <Link
+                                    href="/login"
+                                    className="text-stone-400 hover:text-stone-500 px-3 py-2 text-sm font-medium transition-colors"
+                                >
                                     Sign In
-                                </button>
+                                </Link>
                                 <Link
                                     href="/signup"
                                     className="bg-citrus-500 hover:bg-citrus-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"

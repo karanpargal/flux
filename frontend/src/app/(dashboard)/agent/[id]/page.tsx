@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
-import { Agent, AgentFormValues } from "@/components/ui/types/page-types";
+import { useAgent, useUpdateAgent, useDeleteAgent } from "@/lib/hooks";
 
 const validationSchema = Yup.object({
     name: Yup.string()
@@ -16,16 +16,10 @@ const validationSchema = Yup.object({
     description: Yup.string()
         .min(10, "Description must be at least 10 characters")
         .max(500, "Description must be less than 500 characters")
-        .required("Description is required"),
-    agentType: Yup.string().required("Agent type is required"),
-    capabilities: Yup.string()
-        .min(10, "Capabilities must be at least 10 characters")
-        .max(1000, "Capabilities must be less than 1000 characters")
-        .required("Capabilities are required"),
-    context: Yup.string()
-        .min(10, "Context must be at least 10 characters")
-        .max(2000, "Context must be less than 2000 characters")
-        .required("Context is required"),
+        .nullable()
+        .optional(),
+    org_id: Yup.string().required("Organization ID is required"),
+    org_name: Yup.string().required("Organization name is required"),
 });
 
 export default function AgentInterfacePage() {
@@ -33,9 +27,17 @@ export default function AgentInterfacePage() {
     const router = useRouter();
     const agentId = params.id as string;
 
-    const [agent, setAgent] = useState<Agent | null>(null);
     const [isEditing, setIsEditing] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+
+    // Use real API hooks
+    const {
+        data: agent,
+        loading: agentLoading,
+        error: agentError,
+        refetch,
+    } = useAgent(agentId);
+    const updateAgent = useUpdateAgent();
+    const deleteAgent = useDeleteAgent();
 
     const {
         register,
@@ -43,82 +45,42 @@ export default function AgentInterfacePage() {
         formState: { errors, isSubmitting },
         reset,
         setValue,
-    } = useForm<AgentFormValues>({
+    } = useForm({
         resolver: yupResolver(validationSchema),
     });
 
-    // Mock data - replace with actual API call
-    useEffect(() => {
-        const fetchAgent = async () => {
-            try {
-                // TODO: Replace with actual API call
-                const mockAgent: Agent = {
-                    id: agentId,
-                    name: "Sarah Johnson",
-                    description:
-                        "Handles customer inquiries and provides technical support for our main products.",
-                    agentType: "customer-support",
-                    capabilities:
-                        "Can answer billing questions, provide technical support, handle refunds, and escalate complex issues to human agents.",
-                    context:
-                        "https://docs.example.com/billing, https://help.example.com/refunds, Company policy: All refunds must be approved by manager. Product knowledge base: https://kb.example.com/products",
-                    status: "active",
-                    createdAt: "2024-01-15T10:00:00Z",
-                    updatedAt: "2024-01-15T10:00:00Z",
-                    queriesSolved: 127,
-                };
-
-                setAgent(mockAgent);
-                setValue("name", mockAgent.name);
-                setValue("description", mockAgent.description);
-                setValue("agentType", mockAgent.agentType);
-                setValue("capabilities", mockAgent.capabilities);
-                setValue("context", mockAgent.context);
-            } catch (error) {
-                console.error("Error fetching agent:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        if (agentId) {
-            fetchAgent();
+    // Update form values when agent data loads
+    React.useEffect(() => {
+        if (agent) {
+            setValue("name", agent.name);
+            setValue("description", agent.description || "");
+            setValue("org_id", agent.org_id);
+            setValue("org_name", "Demo Organization"); // This would come from org context
         }
-    }, [agentId, setValue]);
+    }, [agent, setValue]);
 
-    const handleFormSubmit = async (values: AgentFormValues) => {
+    const handleFormSubmit = async (values: {
+        name: string;
+        description?: string | null | undefined;
+        org_id: string;
+        org_name: string;
+    }) => {
         try {
-            // TODO: Replace with actual API call
-            const updatedAgent = {
-                ...agent,
-                ...values,
-                updatedAt: new Date().toISOString(),
-            };
-
-            setAgent(updatedAgent as Agent);
+            await updateAgent.execute(agentId, {
+                name: values.name,
+                description: values.description || null,
+            });
             setIsEditing(false);
+            refetch(); // Refresh agent data
         } catch (error) {
             console.error("Error updating agent:", error);
         }
     };
 
     const handleToggleStatus = async () => {
-        if (!agent) return;
-
-        try {
-            // TODO: Replace with actual API call
-            const updatedAgent = {
-                ...agent,
-                status: (agent.status === "active" ? "inactive" : "active") as
-                    | "active"
-                    | "inactive",
-                updatedAt: new Date().toISOString(),
-            };
-
-            setAgent(updatedAgent);
-        } catch (error) {
-            console.error("Error toggling agent status:", error);
-        }
+        // Since our backend doesn't have status field, we'll just show a message
+        console.log("Status toggle not implemented in backend yet");
+        // In the future, this would call an update API
     };
 
     const handleDeleteAgent = async () => {
@@ -130,15 +92,15 @@ export default function AgentInterfacePage() {
             )
         ) {
             try {
-                // TODO: Replace with actual API call
-                router.push("/dashboard");
+                await deleteAgent.execute(agentId);
+                router.push(`/dashboard?orgId=${agent.org_id}`);
             } catch (error) {
                 console.error("Error deleting agent:", error);
             }
         }
     };
 
-    if (isLoading) {
+    if (agentLoading) {
         return (
             <div className="min-h-screen bg-stone-50 flex items-center justify-center">
                 <div className="text-center">
@@ -149,22 +111,28 @@ export default function AgentInterfacePage() {
         );
     }
 
-    if (!agent) {
+    if (agentError) {
         return (
             <div className="min-h-screen bg-stone-50 flex items-center justify-center">
                 <div className="text-center">
                     <h1 className="text-2xl font-bold text-stone-500 mb-4">
-                        Agent Not Found
+                        Error Loading Agent
                     </h1>
-                    <p className="text-stone-400 mb-6">
-                        The agent you are looking for doesn&apos;t exist.
-                    </p>
-                    <Link
-                        href="/dashboard"
-                        className="bg-citrus-500 hover:bg-citrus-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                    >
-                        Back to Dashboard
-                    </Link>
+                    <p className="text-stone-400 mb-6">{agentError}</p>
+                    <div className="space-x-4">
+                        <button
+                            onClick={() => refetch()}
+                            className="bg-citrus-500 hover:bg-citrus-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        >
+                            Retry
+                        </button>
+                        <Link
+                            href={`/dashboard?orgId=${agent?.org_id || ""}`}
+                            className="bg-stone-500 hover:bg-stone-600 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        >
+                            Back to Dashboard
+                        </Link>
+                    </div>
                 </div>
             </div>
         );
@@ -177,7 +145,7 @@ export default function AgentInterfacePage() {
                 <div className="mb-8">
                     <div className="flex items-center gap-4 mb-4">
                         <Link
-                            href="/dashboard"
+                            href={`/dashboard?orgId=${agent?.org_id}`}
                             className="text-stone-400 hover:text-stone-600 transition-colors"
                         >
                             ← Back to Dashboard
@@ -186,7 +154,7 @@ export default function AgentInterfacePage() {
                     <div className="flex items-center justify-between">
                         <div>
                             <h1 className="text-3xl font-bold text-stone-500 mb-2">
-                                {isEditing ? "Edit Agent" : agent.name}
+                                {isEditing ? "Edit Agent" : agent?.name}
                             </h1>
                             <p className="text-stone-400">
                                 {isEditing
@@ -205,15 +173,9 @@ export default function AgentInterfacePage() {
                                     </button>
                                     <button
                                         onClick={handleToggleStatus}
-                                        className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                                            agent.status === "active"
-                                                ? "bg-red-500 hover:bg-red-600 text-white"
-                                                : "bg-green-500 hover:bg-green-600 text-white"
-                                        }`}
+                                        className="px-4 py-2 rounded-lg font-medium transition-colors bg-stone-500 hover:bg-stone-600 text-white"
                                     >
-                                        {agent.status === "active"
-                                            ? "Deactivate"
-                                            : "Activate"}
+                                        Toggle Status
                                     </button>
                                     <button
                                         onClick={handleDeleteAgent}
@@ -237,6 +199,16 @@ export default function AgentInterfacePage() {
                                     onSubmit={handleSubmit(handleFormSubmit)}
                                     className="space-y-6"
                                 >
+                                    {/* Hidden fields for org info */}
+                                    <input
+                                        type="hidden"
+                                        {...register("org_id")}
+                                    />
+                                    <input
+                                        type="hidden"
+                                        {...register("org_name")}
+                                    />
+
                                     {/* Agent Name */}
                                     <div>
                                         <label
@@ -272,7 +244,7 @@ export default function AgentInterfacePage() {
                                         </label>
                                         <textarea
                                             id="description"
-                                            rows={3}
+                                            rows={4}
                                             {...register("description")}
                                             className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:border-citrus-500 ${
                                                 errors.description
@@ -287,108 +259,26 @@ export default function AgentInterfacePage() {
                                         )}
                                     </div>
 
-                                    {/* Agent Type */}
-                                    <div>
-                                        <label
-                                            htmlFor="agentType"
-                                            className="block text-sm font-medium text-stone-500 mb-2"
-                                        >
-                                            Agent Type *
-                                        </label>
-                                        <select
-                                            id="agentType"
-                                            {...register("agentType")}
-                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:border-citrus-500 ${
-                                                errors.agentType
-                                                    ? "border-red-500"
-                                                    : "border-stone-300"
-                                            }`}
-                                        >
-                                            <option value="">
-                                                Select agent type
-                                            </option>
-                                            <option value="customer-support">
-                                                Customer Support
-                                            </option>
-                                            <option value="technical-support">
-                                                Technical Support
-                                            </option>
-                                            <option value="sales">Sales</option>
-                                            <option value="billing">
-                                                Billing
-                                            </option>
-                                            <option value="general">
-                                                General
-                                            </option>
-                                            <option value="escalation">
-                                                Escalation
-                                            </option>
-                                        </select>
-                                        {errors.agentType && (
-                                            <div className="mt-1 text-sm text-red-600">
-                                                {errors.agentType.message}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Capabilities */}
-                                    <div>
-                                        <label
-                                            htmlFor="capabilities"
-                                            className="block text-sm font-medium text-stone-500 mb-2"
-                                        >
-                                            Agent Capabilities *
-                                        </label>
-                                        <textarea
-                                            id="capabilities"
-                                            rows={4}
-                                            {...register("capabilities")}
-                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:border-citrus-500 ${
-                                                errors.capabilities
-                                                    ? "border-red-500"
-                                                    : "border-stone-300"
-                                            }`}
-                                        />
-                                        {errors.capabilities && (
-                                            <div className="mt-1 text-sm text-red-600">
-                                                {errors.capabilities.message}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Context */}
-                                    <div>
-                                        <label
-                                            htmlFor="context"
-                                            className="block text-sm font-medium text-stone-500 mb-2"
-                                        >
-                                            Context & Knowledge Sources *
-                                        </label>
-                                        <textarea
-                                            id="context"
-                                            rows={6}
-                                            {...register("context")}
-                                            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:border-citrus-500 ${
-                                                errors.context
-                                                    ? "border-red-500"
-                                                    : "border-stone-300"
-                                            }`}
-                                        />
-                                        {errors.context && (
-                                            <div className="mt-1 text-sm text-red-600">
-                                                {errors.context.message}
-                                            </div>
-                                        )}
-                                    </div>
+                                    {/* Error Display */}
+                                    {updateAgent.error && (
+                                        <div className="p-4 border border-red-300 bg-red-50 rounded-md">
+                                            <p className="text-sm text-red-600">
+                                                {updateAgent.error}
+                                            </p>
+                                        </div>
+                                    )}
 
                                     {/* Form Actions */}
                                     <div className="flex gap-4 pt-4">
                                         <button
                                             type="submit"
-                                            disabled={isSubmitting}
+                                            disabled={
+                                                isSubmitting ||
+                                                updateAgent.loading
+                                            }
                                             className="bg-citrus-500 hover:bg-citrus-600 disabled:bg-citrus-400 text-white font-medium py-2 px-6 rounded-md transition-colors"
                                         >
-                                            {isSubmitting
+                                            {isSubmitting || updateAgent.loading
                                                 ? "Saving..."
                                                 : "Save Changes"}
                                         </button>
@@ -419,18 +309,7 @@ export default function AgentInterfacePage() {
                                                 Name
                                             </label>
                                             <p className="text-stone-600">
-                                                {agent.name}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
-                                                Type
-                                            </label>
-                                            <p className="text-stone-600 capitalize">
-                                                {agent.agentType.replace(
-                                                    "-",
-                                                    " "
-                                                )}
+                                                {agent?.name}
                                             </p>
                                         </div>
                                         <div>
@@ -438,67 +317,125 @@ export default function AgentInterfacePage() {
                                                 Description
                                             </label>
                                             <p className="text-stone-600">
-                                                {agent.description}
+                                                {agent?.description ||
+                                                    "No description provided"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                                Agent ID
+                                            </label>
+                                            <p className="text-sm text-stone-500 font-mono bg-stone-50 p-2 rounded">
+                                                {agent?.agent_id}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                                Organization ID
+                                            </label>
+                                            <p className="text-sm text-stone-500 font-mono bg-stone-50 p-2 rounded">
+                                                {agent?.org_id}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                                Created At
+                                            </label>
+                                            <p className="text-stone-600">
+                                                {agent?.created_at
+                                                    ? new Date(
+                                                          agent.created_at
+                                                      ).toLocaleString()
+                                                    : "N/A"}
                                             </p>
                                         </div>
                                         <div>
                                             <label className="block text-sm font-medium text-stone-400 mb-1">
                                                 Status
                                             </label>
-                                            <span
-                                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                    agent.status === "active"
-                                                        ? "bg-green-100 text-green-800"
-                                                        : "bg-red-100 text-red-800"
-                                                }`}
-                                            >
-                                                {agent.status}
-                                            </span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Capabilities */}
-                                <div className="bg-white p-6 rounded-lg shadow-lg border border-stone-200">
-                                    <h2 className="text-xl font-semibold text-stone-500 mb-4">
-                                        Capabilities
-                                    </h2>
-                                    <p className="text-stone-600 whitespace-pre-wrap">
-                                        {agent.capabilities}
-                                    </p>
-                                </div>
-
-                                {/* Context */}
-                                <div className="bg-white p-6 rounded-lg shadow-lg border border-stone-200">
-                                    <h2 className="text-xl font-semibold text-stone-500 mb-4">
-                                        Context & Knowledge Sources
-                                    </h2>
-                                    <div className="text-stone-600 whitespace-pre-wrap">
-                                        {agent.context
-                                            .split(",")
-                                            .map((item, index) => (
-                                                <div
-                                                    key={index}
-                                                    className="mb-2"
+                                            <p className="text-stone-600">
+                                                <span
+                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                        agent?.active
+                                                            ? "bg-green-100 text-green-800"
+                                                            : "bg-red-100 text-red-800"
+                                                    }`}
                                                 >
-                                                    {item
-                                                        .trim()
-                                                        .startsWith("http") ? (
-                                                        <a
-                                                            href={item.trim()}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="text-citrus-600 hover:text-citrus-700 underline"
-                                                        >
-                                                            {item.trim()}
-                                                        </a>
-                                                    ) : (
-                                                        <span>
-                                                            {item.trim()}
-                                                        </span>
-                                                    )}
+                                                    {agent?.active
+                                                        ? "Active"
+                                                        : "Inactive"}
+                                                </span>
+                                            </p>
+                                        </div>
+                                        {agent?.resource_urls &&
+                                            agent.resource_urls.length > 0 && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-stone-400 mb-1">
+                                                        Resource URLs
+                                                    </label>
+                                                    <div className="space-y-2">
+                                                        {agent.resource_urls.map(
+                                                            (url, index) => (
+                                                                <div
+                                                                    key={index}
+                                                                    className="flex items-center gap-2"
+                                                                >
+                                                                    <a
+                                                                        href={
+                                                                            url
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-citrus-500 hover:text-citrus-600 text-sm break-all"
+                                                                    >
+                                                                        {url}
+                                                                    </a>
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            ))}
+                                            )}
+                                        {agent?.file_urls &&
+                                            agent.file_urls.length > 0 && (
+                                                <div>
+                                                    <label className="block text-sm font-medium text-stone-400 mb-1">
+                                                        Uploaded Files
+                                                    </label>
+                                                    <div className="space-y-2">
+                                                        {agent.file_urls.map(
+                                                            (
+                                                                fileUrl,
+                                                                index
+                                                            ) => (
+                                                                <div
+                                                                    key={index}
+                                                                    className="flex items-center gap-2"
+                                                                >
+                                                                    <a
+                                                                        href={
+                                                                            fileUrl
+                                                                        }
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-citrus-500 hover:text-citrus-600 text-sm break-all"
+                                                                    >
+                                                                        {fileUrl
+                                                                            .split(
+                                                                                "/"
+                                                                            )
+                                                                            .pop() ||
+                                                                            `File ${
+                                                                                index +
+                                                                                1
+                                                                            }`}
+                                                                    </a>
+                                                                </div>
+                                                            )
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                     </div>
                                 </div>
                             </>
@@ -510,15 +447,23 @@ export default function AgentInterfacePage() {
                         {/* Stats */}
                         <div className="bg-white p-6 rounded-lg shadow-lg border border-stone-200">
                             <h2 className="text-xl font-semibold text-stone-500 mb-4">
-                                Statistics
+                                Agent Information
                             </h2>
                             <div className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-stone-400 mb-1">
-                                        Queries Solved
+                                        Agent ID
                                     </label>
-                                    <p className="text-2xl font-bold text-citrus-600">
-                                        {agent.queriesSolved || 0}
+                                    <p className="text-sm text-stone-500 font-mono bg-stone-50 p-2 rounded">
+                                        {agent?.agent_id}
+                                    </p>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-stone-400 mb-1">
+                                        Organization ID
+                                    </label>
+                                    <p className="text-sm text-stone-500 font-mono bg-stone-50 p-2 rounded">
+                                        {agent?.org_id}
                                     </p>
                                 </div>
                                 <div>
@@ -526,21 +471,114 @@ export default function AgentInterfacePage() {
                                         Created
                                     </label>
                                     <p className="text-stone-600">
-                                        {new Date(
-                                            agent.createdAt
-                                        ).toLocaleDateString()}
+                                        {agent?.created_at
+                                            ? new Date(
+                                                  agent.created_at
+                                              ).toLocaleDateString()
+                                            : "N/A"}
                                     </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-stone-400 mb-1">
-                                        Last Updated
+                                        Status
                                     </label>
                                     <p className="text-stone-600">
-                                        {new Date(
-                                            agent.updatedAt
-                                        ).toLocaleDateString()}
+                                        <span
+                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                agent?.active
+                                                    ? "bg-green-100 text-green-800"
+                                                    : "bg-red-100 text-red-800"
+                                            }`}
+                                        >
+                                            {agent?.active
+                                                ? "Active"
+                                                : "Inactive"}
+                                        </span>
                                     </p>
                                 </div>
+                                {agent?.resource_urls &&
+                                    agent.resource_urls.length > 0 && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                                Resource URLs (
+                                                {agent.resource_urls.length})
+                                            </label>
+                                            <div className="space-y-1">
+                                                {agent.resource_urls
+                                                    .slice(0, 3)
+                                                    .map((url, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <a
+                                                                href={url}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-citrus-500 hover:text-citrus-600 text-xs break-all"
+                                                            >
+                                                                {url.length > 30
+                                                                    ? `${url.substring(
+                                                                          0,
+                                                                          30
+                                                                      )}...`
+                                                                    : url}
+                                                            </a>
+                                                        </div>
+                                                    ))}
+                                                {agent.resource_urls.length >
+                                                    3 && (
+                                                    <p className="text-xs text-stone-400">
+                                                        +
+                                                        {agent.resource_urls
+                                                            .length - 3}{" "}
+                                                        more
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
+                                {agent?.file_urls &&
+                                    agent.file_urls.length > 0 && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                                Files ({agent.file_urls.length})
+                                            </label>
+                                            <div className="space-y-1">
+                                                {agent.file_urls
+                                                    .slice(0, 3)
+                                                    .map((fileUrl, index) => (
+                                                        <div
+                                                            key={index}
+                                                            className="flex items-center gap-2"
+                                                        >
+                                                            <a
+                                                                href={fileUrl}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-citrus-500 hover:text-citrus-600 text-xs break-all"
+                                                            >
+                                                                {fileUrl
+                                                                    .split("/")
+                                                                    .pop() ||
+                                                                    `File ${
+                                                                        index +
+                                                                        1
+                                                                    }`}
+                                                            </a>
+                                                        </div>
+                                                    ))}
+                                                {agent.file_urls.length > 3 && (
+                                                    <p className="text-xs text-stone-400">
+                                                        +
+                                                        {agent.file_urls
+                                                            .length - 3}{" "}
+                                                        more
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )}
                             </div>
                         </div>
 
