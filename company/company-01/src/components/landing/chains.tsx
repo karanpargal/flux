@@ -58,8 +58,8 @@ export default function Chains() {
                     </h2>
                     <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
                         Diverse blockchain network integrations. Discover
-                        NodeFlow's wide range of chains, making the blockchain
-                        open and decentralized.
+                        Mintair&apos;s wide range of chains, making the
+                        blockchain open and decentralized.
                     </p>
 
                     {/* Stats */}

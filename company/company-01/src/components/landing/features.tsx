@@ -56,7 +56,7 @@ export default function Features() {
                         Our Features
                     </h2>
                     <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                        Decentralization within reach. NodeFlow provides a vast
+                        Decentralization within reach. Mintair provides a vast
                         selection of chains, ensuring a decentralized blockchain
                         ecosystem.
                     </p>
@@ -89,7 +89,7 @@ export default function Features() {
                             Ready to Deploy Your First Node?
                         </h3>
                         <p className="text-gray-300 mb-6">
-                            Join thousands of node operators who trust NodeFlow
+                            Join thousands of node operators who trust Mintair
                             for their blockchain infrastructure needs.
                         </p>
                         <button className="bg-gradient-to-r from-ocean-500 to-neon-500 text-white px-8 py-4 rounded-xl font-semibold text-lg hover:from-ocean-600 hover:to-neon-600 transition-all duration-300 transform hover:scale-105">

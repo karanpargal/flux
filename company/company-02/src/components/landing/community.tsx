@@ -1,7 +1,7 @@
 export default function Community() {
     const testimonials = [
         {
-            quote: "RetroFlow made it extremely easy for our entire team to manage everything in one place - from content management to sales & marketing!",
+            quote: "DashX made it extremely easy for our entire team to manage everything in one place - from content management to sales & marketing!",
             author: "Narayan Gopalan",
             role: "Founder, IxDEAS",
             avatar: "👨‍💼",

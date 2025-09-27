@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "RetroFlow - Empower Business Teams Without Breaking the Bank",
+    title: "DashX - Empower Business Teams Without Breaking the Bank",
     description:
         "Build custom internal tools, centralize operations in a unified dashboard, automate manual workflows, and free up time to focus on what matters.",
 };

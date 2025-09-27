@@ -3,9 +3,9 @@ import { Figtree } from "next/font/google";
 import "./globals.css";
 
 export const metadata: Metadata = {
-    title: "Supportify - Streamline Your Support Operations",
+    title: "Flux - Streamline Your Support Operations",
     description:
-        "Supportify helps organizations manage customer support tickets, track issues, and deliver exceptional customer experiences with powerful automation and analytics.",
+        "Flux helps organizations manage customer support tickets, track issues, and deliver exceptional customer experiences with powerful automation and analytics.",
 };
 
 const figtree = Figtree({

@@ -20,7 +20,7 @@ export default function SignupPage() {
                 <div className="grid grid-cols-1 items-start lg:grid-cols-2 gap-8">
                     <div className="flex flex-col gap-y-10">
                         <h1 className="text-5xl font-bold text-gradient-blue-citrus-vertical">
-                            Welcome to Supportify
+                            Welcome to Flux
                         </h1>
                         <p className="text-2xl text-stone-500 leading-relaxed">
                             Create your account and start building amazing

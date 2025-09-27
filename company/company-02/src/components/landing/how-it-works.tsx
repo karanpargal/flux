@@ -97,7 +97,7 @@ export default function HowItWorks() {
                             Ready to get started?
                         </h3>
                         <p className="text-gray-300 mb-6">
-                            Join thousands of teams already using RetroFlow to
+                            Join thousands of teams already using DashX to
                             streamline their operations
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4 justify-center">

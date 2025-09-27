@@ -1,6 +1,6 @@
-# NodeFlow - One Click Blockchain Infrastructure
+# Mintair - One Click Blockchain Infrastructure
 
-A modern, responsive single-page application inspired by Mintair, built with Next.js 15 and Tailwind CSS. NodeFlow provides a sleek interface for blockchain node deployment services with a dark, ocean-themed design.
+A modern, responsive single-page application inspired by Mintair, built with Next.js 15 and Tailwind CSS. Mintair provides a sleek interface for blockchain node deployment services with a dark, ocean-themed design.
 
 ## Features
 

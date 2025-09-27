@@ -47,11 +47,11 @@ export default function Footer() {
                                 <Zap className="w-5 h-5 text-white" />
                             </div>
                             <span className="text-xl font-bold text-white">
-                                NodeFlow
+                                Mintair
                             </span>
                         </div>
                         <p className="text-gray-300 mb-6 max-w-sm">
-                            NodeFlow streamlines the complex process of node
+                            Mintair streamlines the complex process of node
                             running in just a few clicks. Making blockchain
                             infrastructure accessible to everyone.
                         </p>
@@ -119,7 +119,7 @@ export default function Footer() {
                 <div className="border-t border-ocean-800/30 pt-8">
                     <div className="flex flex-col md:flex-row items-center justify-between">
                         <div className="text-gray-400 text-sm mb-4 md:mb-0">
-                            © 2025 NodeFlow. All rights reserved.
+                            © 2025 Mintair. All rights reserved.
                         </div>
 
                         <div className="text-gray-400 text-sm">

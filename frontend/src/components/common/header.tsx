@@ -17,7 +17,7 @@ const Header: React.FC = () => {
                             href="/"
                             className="text-2xl font-bold text-stone-500 hover:text-citrus-500 transition-colors"
                         >
-                            Supportify
+                            Flux
                         </Link>
                     </div>
 

@@ -32,7 +32,7 @@ export default function Hero() {
 
                 {/* Subheading */}
                 <p className="text-lg sm:text-xl lg:text-2xl text-gray-300 mb-8 max-w-4xl mx-auto leading-relaxed">
-                    RetroFlow helps you build{" "}
+                    DashX helps you build{" "}
                     <span className="text-retro-400 font-semibold">
                         custom internal tools
                     </span>

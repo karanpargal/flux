@@ -22,7 +22,7 @@ export default function Header() {
                             <Zap className="w-5 h-5 text-white" />
                         </div>
                         <span className="text-xl font-bold text-white">
-                            NodeFlow
+                            Mintair
                         </span>
                     </div>
 

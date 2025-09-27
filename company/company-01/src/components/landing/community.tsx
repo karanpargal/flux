@@ -35,21 +35,21 @@ export default function Community() {
             name: "Alex Chen",
             role: "Node Operator",
             content:
-                "NodeFlow made it incredibly easy to deploy my first Ethereum node. The process was seamless and the support team was amazing!",
+                "Mintair made it incredibly easy to deploy my first Ethereum node. The process was seamless and the support team was amazing!",
             avatar: "AC",
         },
         {
             name: "Sarah Johnson",
             role: "Blockchain Developer",
             content:
-                "I've been using NodeFlow for multiple chains and the uptime has been exceptional. Highly recommend for anyone serious about running nodes.",
+                "I've been using Mintair for multiple chains and the uptime has been exceptional. Highly recommend for anyone serious about running nodes.",
             avatar: "SJ",
         },
         {
             name: "Mike Rodriguez",
             role: "DeFi Enthusiast",
             content:
-                "The dashboard is intuitive and the analytics are comprehensive. NodeFlow has simplified node management for me completely.",
+                "The dashboard is intuitive and the analytics are comprehensive. Mintair has simplified node management for me completely.",
             avatar: "MR",
         },
     ];
@@ -62,7 +62,7 @@ export default function Community() {
                         Social Community
                     </h2>
                     <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-                        Explore #NodeFlow community. Join the one-click node
+                        Explore #Mintair community. Join the one-click node
                         operators, no nerds, no complex BS.
                     </p>
                 </div>

@@ -24,7 +24,7 @@ export default function Footer() {
                                 </span>
                             </div>
                             <span className="text-xl font-bold animate-neon-glow text-retro-400">
-                                RetroFlow
+                                DashX
                             </span>
                         </div>
                         <p className="text-gray-300 mb-6 max-w-md">
@@ -162,7 +162,7 @@ export default function Footer() {
                 <div className="border-t border-retro-500/20 pt-8">
                     <div className="flex flex-col md:flex-row justify-between items-center">
                         <div className="text-gray-400 text-sm mb-4 md:mb-0">
-                            © {currentYear} RetroFlow OÜ. All rights reserved.
+                            © {currentYear} DashX. All rights reserved.
                         </div>
                         <div className="flex space-x-6 text-sm">
                             <a
@@ -178,10 +178,10 @@ export default function Footer() {
                                 Terms of Service
                             </a>
                             <a
-                                href="mailto:contact@retroflow.com"
+                                href="mailto:contact@dashx.com"
                                 className="text-gray-400 hover:text-retro-400 transition-colors duration-300"
                             >
-                                contact@retroflow.com
+                                contact@dashx.com
                             </a>
                         </div>
                     </div>

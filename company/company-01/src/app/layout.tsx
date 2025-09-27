@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "NodeFlow - One Click Blockchain Infrastructure",
+    title: "Mintair - One Click Blockchain Infrastructure",
     description:
-        "Deploy blockchain nodes effortlessly with NodeFlow's one-click solution. Making decentralized infrastructure accessible to everyone.",
+        "Deploy blockchain nodes effortlessly with Mintair's one-click solution. Making decentralized infrastructure accessible to everyone.",
 };
 
 export default function RootLayout({

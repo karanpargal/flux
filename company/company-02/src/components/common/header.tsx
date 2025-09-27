@@ -13,11 +13,11 @@ export default function Header() {
                     <div className="flex items-center space-x-2">
                         <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-retro-500 to-cyan-500 flex items-center justify-center">
                             <span className="text-white font-bold text-lg">
-                                R
+                                D
                             </span>
                         </div>
                         <span className="text-xl font-bold animate-neon-glow text-retro-400">
-                            RetroFlow
+                            DashX
                         </span>
                     </div>
 
