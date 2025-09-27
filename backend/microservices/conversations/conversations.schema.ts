@@ -4,19 +4,8 @@ export const getConversationHistoryQuery = yup
     .object()
     .shape({
         user_id: yup.string().required(),
-        agent_id: yup.string().optional(),
-        org_id: yup.string().optional(),
-    })
-    .strict()
-    .noUnknown()
-    .required();
-
-export const deleteConversationHistoryQuery = yup
-    .object()
-    .shape({
-        user_id: yup.string().required(),
-        agent_id: yup.string().optional(),
-        org_id: yup.string().optional(),
+        agent_id: yup.string().required(),
+        org_id: yup.string().required(),
     })
     .strict()
     .noUnknown()

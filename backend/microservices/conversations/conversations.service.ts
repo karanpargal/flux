@@ -255,7 +255,7 @@ export const processChatCompletion = async ({
                 user_id,
                 agent_id,
                 org_id,
-            },
+            } as MappedChatMessage,
         };
     } catch (error) {
         log.error("chat-completion-failed", {

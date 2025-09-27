@@ -4,11 +4,9 @@ import { MappedChatMessage } from "../../utils/types/mappers.types";
 import { ResponseWithData } from "../../utils/types/shared.types";
 import {
     chatCompletionBody,
-    deleteConversationHistoryQuery,
     getConversationHistoryQuery,
 } from "./conversations.schema.js";
 import {
-    deleteConversationHistory,
     getConversationHistory,
     processChatCompletion,
 } from "./conversations.service";
@@ -32,8 +30,8 @@ const handleGetConversationHistory = async (
         const data = await log.time("fetch-conversation-history", () =>
             getConversationHistory(
                 user_id as string,
-                agent_id as string | undefined,
-                org_id as string | undefined,
+                agent_id as string,
+                org_id as string,
             ),
         );
 
@@ -41,33 +39,6 @@ const handleGetConversationHistory = async (
             success: true,
             data,
         } satisfies ResponseWithData<MappedChatMessage[]>);
-    } catch (error) {
-        log.error("request-failed", {
-            error,
-        });
-        next(error);
-    }
-};
-
-// DELETE /conversations/history - Delete conversation history with filters
-const handleDeleteConversationHistory = async (
-    req: Request,
-    res: Response,
-    next: NextFunction,
-) => {
-    const log = logger.scoped("deleteConversationHistory");
-    try {
-        const { user_id, agent_id, org_id } = req.query;
-
-        await log.time("delete-conversation-history", () =>
-            deleteConversationHistory(
-                user_id as string,
-                agent_id as string | undefined,
-                org_id as string | undefined,
-            ),
-        );
-
-        return res.status(204).send();
     } catch (error) {
         log.error("request-failed", {
             error,
@@ -117,9 +88,4 @@ conversationsRouter.get(
     "/history",
     validateQuery("query", getConversationHistoryQuery),
     handleGetConversationHistory,
-);
-conversationsRouter.delete(
-    "/history",
-    validateQuery("query", deleteConversationHistoryQuery),
-    handleDeleteConversationHistory,
 );
