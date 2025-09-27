@@ -3,6 +3,9 @@
 import { Agent, Organization } from "@/lib/types";
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
 
 interface Message {
     id: string;
@@ -290,7 +293,24 @@ export default function FloatingChatWidget({ agentId }: { agentId: string }) {
                                     key={message.id}
                                     className={`floating-message ${message.sender}`}
                                 >
-                                    {message.content}
+                                    <div className="markdown-content">
+                                        <ReactMarkdown
+                                            remarkPlugins={[remarkGfm]}
+                                            rehypePlugins={[rehypeHighlight]}
+                                            components={{
+                                                // Prevent new windows for links in embedded widget
+                                                a: ({ node, ...props }) => (
+                                                    <a {...props} target="_blank" rel="noopener noreferrer" />
+                                                ),
+                                                // Ensure code blocks don't break layout
+                                                pre: ({ node, ...props }) => (
+                                                    <pre {...props} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }} />
+                                                ),
+                                            }}
+                                        >
+                                            {message.content}
+                                        </ReactMarkdown>
+                                    </div>
                                 </div>
                             ))}
 
