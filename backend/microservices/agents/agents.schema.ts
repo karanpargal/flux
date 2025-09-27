@@ -9,6 +9,8 @@ export const createAgentBody = yup
         description: yup.string().trim().nullable().optional(),
         org_id: yup.string().trim().required(),
         org_name: yup.string().trim().required(),
+        file_urls: yup.array().of(yup.string().trim()).required(),
+        resource_urls: yup.array().of(yup.string().trim()).required(),
     })
     .strict()
     .noUnknown()
