@@ -1,16 +1,15 @@
 "use client";
 
-import React from "react";
+import React, { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import AgentForm from "@/components/forms/agent-form";
 import { AgentFormValues } from "@/components/ui/types/form-types";
-import { useCreateAgent } from "@/lib/hooks";
 
-export default function NewAgentPage() {
+function NewAgentPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const createAgent = useCreateAgent();
+    // const createAgent = useCreateAgent(); // Unused for now
 
     // Get organization ID from URL search params
     const orgId = searchParams.get("orgId");
@@ -21,7 +20,7 @@ export default function NewAgentPage() {
         console.log("Form submitted with values:", values);
     };
 
-    const handleSuccess = (agent: any) => {
+    const handleSuccess = () => {
         // Navigate to dashboard after successful creation
         router.push(`/dashboard?orgId=${orgId}`);
     };
@@ -88,5 +87,13 @@ export default function NewAgentPage() {
                 </div>
             </div>
         </div>
+    );
+}
+
+export default function NewAgentPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <NewAgentPageContent />
+        </Suspense>
     );
 }

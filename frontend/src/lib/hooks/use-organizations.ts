@@ -54,8 +54,13 @@ export function useOrganization(
 }
 
 // Hook to create an organization
-export function useCreateOrganization(): UseMutationState<Organization> {
-    const [state, setState] = useState<UseMutationState<Organization>>({
+export function useCreateOrganization(): UseMutationState<
+    Organization,
+    [CreateOrganizationRequest]
+> {
+    const [state, setState] = useState<
+        UseMutationState<Organization, [CreateOrganizationRequest]>
+    >({
         data: null,
         loading: false,
         error: null,
@@ -105,8 +110,13 @@ export function useCreateOrganization(): UseMutationState<Organization> {
 }
 
 // Hook to update an organization
-export function useUpdateOrganization(): UseMutationState<Organization> {
-    const [state, setState] = useState<UseMutationState<Organization>>({
+export function useUpdateOrganization(): UseMutationState<
+    Organization,
+    [string, UpdateOrganizationRequest]
+> {
+    const [state, setState] = useState<
+        UseMutationState<Organization, [string, UpdateOrganizationRequest]>
+    >({
         data: null,
         loading: false,
         error: null,
@@ -159,8 +169,8 @@ export function useUpdateOrganization(): UseMutationState<Organization> {
 }
 
 // Hook to delete an organization
-export function useDeleteOrganization(): UseMutationState<void> {
-    const [state, setState] = useState<UseMutationState<void>>({
+export function useDeleteOrganization(): UseMutationState<void, [string]> {
+    const [state, setState] = useState<UseMutationState<void, [string]>>({
         data: null,
         loading: false,
         error: null,
@@ -206,8 +216,13 @@ export function useDeleteOrganization(): UseMutationState<void> {
 }
 
 // Hook to login an organization
-export function useLoginOrganization(): UseMutationState<Organization> {
-    const [state, setState] = useState<UseMutationState<Organization>>({
+export function useLoginOrganization(): UseMutationState<
+    Organization,
+    [string, string]
+> {
+    const [state, setState] = useState<
+        UseMutationState<Organization, [string, string]>
+    >({
         data: null,
         loading: false,
         error: null,

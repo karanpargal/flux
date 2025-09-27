@@ -15,7 +15,7 @@ export interface DashboardPageProps {
 
 export interface AgentFormProps {
     onSubmit: (values: AgentFormValues) => void;
-    onSuccess?: (agent: any) => void;
+    onSuccess?: (agent: unknown) => void;
     className?: string;
     orgId?: string;
     orgName?: string;

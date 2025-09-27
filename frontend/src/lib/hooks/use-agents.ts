@@ -93,8 +93,13 @@ export function useAgentsForOrg(orgId: string | null): UseQueryState<Agent[]> {
 }
 
 // Hook to create an agent
-export function useCreateAgent(): UseMutationState<Agent> {
-    const [state, setState] = useState<UseMutationState<Agent>>({
+export function useCreateAgent(): UseMutationState<
+    Agent,
+    [CreateAgentRequest]
+> {
+    const [state, setState] = useState<
+        UseMutationState<Agent, [CreateAgentRequest]>
+    >({
         data: null,
         loading: false,
         error: null,
@@ -144,8 +149,13 @@ export function useCreateAgent(): UseMutationState<Agent> {
 }
 
 // Hook to update an agent
-export function useUpdateAgent(): UseMutationState<Agent> {
-    const [state, setState] = useState<UseMutationState<Agent>>({
+export function useUpdateAgent(): UseMutationState<
+    Agent,
+    [string, UpdateAgentRequest]
+> {
+    const [state, setState] = useState<
+        UseMutationState<Agent, [string, UpdateAgentRequest]>
+    >({
         data: null,
         loading: false,
         error: null,
@@ -195,8 +205,8 @@ export function useUpdateAgent(): UseMutationState<Agent> {
 }
 
 // Hook to delete an agent
-export function useDeleteAgent(): UseMutationState<void> {
-    const [state, setState] = useState<UseMutationState<void>>({
+export function useDeleteAgent(): UseMutationState<void, [string]> {
+    const [state, setState] = useState<UseMutationState<void, [string]>>({
         data: null,
         loading: false,
         error: null,

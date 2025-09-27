@@ -77,10 +77,10 @@ export interface UseQueryState<T> {
     refetch: () => Promise<void>;
 }
 
-export interface UseMutationState<T> {
+export interface UseMutationState<T, TArgs extends unknown[] = unknown[]> {
     data: T | null;
     loading: boolean;
     error: string | null;
-    execute: (...args: any[]) => Promise<T>;
+    execute: (...args: TArgs) => Promise<T>;
     reset: () => void;
 }

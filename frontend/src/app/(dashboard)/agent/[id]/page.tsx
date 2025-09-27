@@ -68,7 +68,7 @@ export default function AgentInterfacePage() {
         try {
             await updateAgent.execute(agentId, {
                 name: values.name,
-                description: values.description || null,
+                description: values.description || undefined,
             });
             setIsEditing(false);
             refetch(); // Refresh agent data
