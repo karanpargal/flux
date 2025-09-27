@@ -68,8 +68,18 @@ jobs:
             # Create .env file from GitHub secrets
             echo "${{ secrets.ENV_AGENTS }}" > .env
             
+            # Install required system packages for Python virtual environment
+            sudo apt update
+            sudo apt install -y python3-venv python3-full
+            
             # Create virtual environment
             python3 -m venv venv
+            
+            # Verify virtual environment was created successfully
+            if [ ! -f "venv/bin/activate" ]; then
+              echo "Failed to create virtual environment"
+              exit 1
+            fi
             
             # Activate virtual environment and install dependencies
             source venv/bin/activate
