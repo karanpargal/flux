@@ -1,4 +1,5 @@
 import { agentsRouter } from "./microservices/agents/agents.routes";
+import { conversationsRouter } from "./microservices/conversations/conversations.routes";
 import { orgsRouter } from "./microservices/orgs/orgs.routes";
 import { LoggerService, SupabaseService } from "./services";
 import cors from "cors";
@@ -26,6 +27,7 @@ const v1Router = Router();
 app.use("/api/v1", v1Router);
 
 v1Router.use("/agents", agentsRouter);
+v1Router.use("/conversations", conversationsRouter);
 v1Router.use("/orgs", orgsRouter);
 
 app.use("/*splat", (_req: Request, res: Response) => {

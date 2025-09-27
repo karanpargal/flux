@@ -21,10 +21,12 @@ export type Database = {
                     capabilities: Json;
                     created_at: string;
                     description: string | null;
+                    ens: string;
                     file_urls: string[];
                     name: string;
                     org_id: string;
                     resource_urls: string[];
+                    wallet_address: string;
                 };
                 Insert: {
                     active?: boolean;
@@ -32,10 +34,12 @@ export type Database = {
                     capabilities?: Json;
                     created_at?: string;
                     description?: string | null;
+                    ens: string;
                     file_urls?: string[];
                     name: string;
                     org_id: string;
                     resource_urls?: string[];
+                    wallet_address: string;
                 };
                 Update: {
                     active?: boolean;
@@ -43,14 +47,61 @@ export type Database = {
                     capabilities?: Json;
                     created_at?: string;
                     description?: string | null;
+                    ens?: string;
                     file_urls?: string[];
                     name?: string;
                     org_id?: string;
                     resource_urls?: string[];
+                    wallet_address?: string;
                 };
                 Relationships: [
                     {
                         foreignKeyName: "agents_org_id_fkey";
+                        columns: ["org_id"];
+                        isOneToOne: false;
+                        referencedRelation: "orgs";
+                        referencedColumns: ["org_id"];
+                    },
+                ];
+            };
+            chat_messages: {
+                Row: {
+                    agent_id: string | null;
+                    chat_messages_id: string;
+                    content: string;
+                    created_at: string;
+                    org_id: string | null;
+                    role: Database["public"]["Enums"]["MESSAGE_ROLE"];
+                    user_id: string;
+                };
+                Insert: {
+                    agent_id?: string | null;
+                    chat_messages_id?: string;
+                    content: string;
+                    created_at?: string;
+                    org_id?: string | null;
+                    role: Database["public"]["Enums"]["MESSAGE_ROLE"];
+                    user_id?: string;
+                };
+                Update: {
+                    agent_id?: string | null;
+                    chat_messages_id?: string;
+                    content?: string;
+                    created_at?: string;
+                    org_id?: string | null;
+                    role?: Database["public"]["Enums"]["MESSAGE_ROLE"];
+                    user_id?: string;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "chat_messages_agent_id_fkey";
+                        columns: ["agent_id"];
+                        isOneToOne: false;
+                        referencedRelation: "agents";
+                        referencedColumns: ["agent_id"];
+                    },
+                    {
+                        foreignKeyName: "chat_messages_org_id_fkey";
                         columns: ["org_id"];
                         isOneToOne: false;
                         referencedRelation: "orgs";
@@ -99,6 +150,7 @@ export type Database = {
             [_ in never]: never;
         };
         Enums: {
+            MESSAGE_ROLE: "assistant" | "user";
             ORG_INDUSTRY: "Tech";
         };
         CompositeTypes: {
@@ -230,6 +282,7 @@ export type CompositeTypes<
 export const Constants = {
     public: {
         Enums: {
+            MESSAGE_ROLE: ["assistant", "user"],
             ORG_INDUSTRY: ["Tech"],
         },
     },

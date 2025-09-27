@@ -10,7 +10,10 @@ export const notifyThirdPartyServer = async (
         description,
         name,
         org_id,
-    }: Omit<MappedAgent, "created_at" | "agent_id" | "active">,
+    }: Omit<
+        MappedAgent,
+        "created_at" | "agent_id" | "active" | "ens" | "wallet_address"
+    >,
 ) => {
     const log = logger.scoped("notifyThirdPartyServer");
 
@@ -32,7 +35,7 @@ export const notifyThirdPartyServer = async (
                 capabilities: [],
                 pdf_document_urls: [],
                 support_categories: [],
-                company_products: []
+                company_products: [],
             }),
         });
 
@@ -42,16 +45,18 @@ export const notifyThirdPartyServer = async (
             );
         }
 
-        const { agent_id, address } = await response.json();
-
-        console.log("address", address);
+        const { agent_id, address, ens_name } = await response.json();
 
         log.info("third-party-notification-success", {
             agent_id,
             status: response.status,
         });
 
-        return agent_id;
+        return {
+            agent_id,
+            address,
+            ens_name,
+        };
     } catch (error) {
         log.error("third-party-notification-failed", {
             name,
@@ -68,6 +73,8 @@ export const storeAgentInDatabase = async ({
     description,
     name,
     org_id,
+    ens,
+    wallet_address,
 }: Omit<MappedAgent, "created_at">) => {
     const log = logger.scoped("storeAgentInDatabase");
 
@@ -78,6 +85,8 @@ export const storeAgentInDatabase = async ({
             org_id,
             agent_id,
             description,
+            ens,
+            wallet_address,
         })
         .select()
         .single();
@@ -105,14 +114,17 @@ export const createAgent = async (
     const log = logger.scoped("createAgent");
 
     try {
-        const agent_id = await notifyThirdPartyServer(org_name, {
-            capabilities: [],
-            file_urls,
-            resource_urls,
-            name,
-            description,
-            org_id,
-        });
+        const { agent_id, address, ens_name } = await notifyThirdPartyServer(
+            org_name,
+            {
+                capabilities: [],
+                file_urls,
+                resource_urls,
+                name,
+                description,
+                org_id,
+            },
+        );
 
         // If files are provided, upload them during creation
         let finalFileUrls = file_urls || [];
@@ -151,6 +163,8 @@ export const createAgent = async (
             name,
             description,
             org_id,
+            ens: ens_name,
+            wallet_address: address,
         });
 
         log.info("agent-created-successfully", {
