@@ -19,7 +19,7 @@ export const notifyThirdPartyServer = async (
             process.env.THIRD_PARTY_SERVER_URL ||
             "https://api.example.com/agents";
 
-        const response = await fetch(thirdPartyUrl, {
+        const response = await fetch(thirdPartyUrl + "/company-agents", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -42,7 +42,9 @@ export const notifyThirdPartyServer = async (
             );
         }
 
-        const { agent_id } = await response.json();
+        const { agent_id, address } = await response.json();
+
+        console.log("address", address);
 
         log.info("third-party-notification-success", {
             agent_id,

@@ -58,45 +58,6 @@ export type Database = {
                     },
                 ];
             };
-            custom_tools: {
-                Row: {
-                    agent_id: string;
-                    created_at: string;
-                    fields: Json;
-                    org_id: string;
-                    tool_id: number;
-                };
-                Insert: {
-                    agent_id: string;
-                    created_at?: string;
-                    fields?: Json;
-                    org_id: string;
-                    tool_id?: number;
-                };
-                Update: {
-                    agent_id?: string;
-                    created_at?: string;
-                    fields?: Json;
-                    org_id?: string;
-                    tool_id?: number;
-                };
-                Relationships: [
-                    {
-                        foreignKeyName: "custom_tools_agent_id_fkey";
-                        columns: ["agent_id"];
-                        isOneToOne: false;
-                        referencedRelation: "agents";
-                        referencedColumns: ["agent_id"];
-                    },
-                    {
-                        foreignKeyName: "custom_tools_org_id_fkey";
-                        columns: ["org_id"];
-                        isOneToOne: false;
-                        referencedRelation: "orgs";
-                        referencedColumns: ["org_id"];
-                    },
-                ];
-            };
             orgs: {
                 Row: {
                     created_at: string | null;
