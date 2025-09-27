@@ -17,7 +17,7 @@ import {
     getAgentsForOrg,
     updateAgent,
     updateAgentActiveStatus,
-    uploadFileToSupabase,
+    uploadFilesToSupabase,
 } from "./agents.service";
 import type { NextFunction, Request, Response } from "express";
 import { Router } from "express";
@@ -32,7 +32,8 @@ const logger = LoggerService.scoped("agents");
 const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
-        fileSize: 5 * 1024 * 1024, // 10MB limit
+        fileSize: 5 * 1024 * 1024, // 5MB limit per file
+        files: 10, // Maximum 10 files at once
     },
     fileFilter: (req: any, file: any, cb: any) => {
         const allowedMimes = ["application/pdf"];
@@ -113,9 +114,10 @@ const handleCreateAgent = async (
     const log = logger.scoped("createAgent");
     try {
         const agentData = req.body;
+        const files = req.files as Express.Multer.File[];
 
         const data = await log.time("create-agent", () =>
-            createAgent(agentData.org_name, agentData),
+            createAgent(agentData.org_name, agentData, files),
         );
 
         return res.status(201).json({
@@ -200,36 +202,48 @@ const handleDeleteAgent = async (
     }
 };
 
-// POST /agents/:agent_id/upload - Upload file for agent
-const handleUploadFile = async (
+// POST /agents/:agent_id/upload - Upload files for agent (supports single or multiple)
+const handleUploadFiles = async (
     req: Request,
     res: Response,
     next: NextFunction,
 ) => {
-    const log = logger.scoped("uploadFile");
+    const log = logger.scoped("uploadFiles");
     try {
-        const { agent_id } = req.params;
-        const file = req.file;
+        const { org_id, agent_id } = req.params;
+        const files = req.files as Express.Multer.File[];
         const { currentFileUrls = [] } = req.body;
 
-        if (!file) {
-            log.error("no-file-provided", {
+        if (!files || files.length === 0) {
+            log.error("no-files-provided", {
                 agent_id,
             });
-            throw new Error("No file provided");
+            throw new Error("No files provided");
         }
 
-        const public_url = await log.time("upload-file", () =>
-            uploadFileToSupabase(agent_id, file, currentFileUrls),
+        const results = await log.time("upload-files", () =>
+            uploadFilesToSupabase(agent_id, org_id, files, currentFileUrls),
         );
 
         return res.status(201).json({
             success: true,
             data: {
-                public_url,
+                successful: results.successful,
+                failed: results.failed,
+                summary: {
+                    total: files.length,
+                    successful: results.successful.length,
+                    failed: results.failed.length,
+                },
             },
         } satisfies ResponseWithData<{
-            public_url: string;
+            successful: { file_name: string; public_url: string }[];
+            failed: { file_name: string; error: string }[];
+            summary: {
+                total: number;
+                successful: number;
+                failed: number;
+            };
         }>);
     } catch (error) {
         log.error("request-failed", {
@@ -279,6 +293,7 @@ agentsRouter.get(
 agentsRouter.post(
     "/",
     validateQuery("body", createAgentBody),
+    upload.array("files", 3),
     handleCreateAgent,
 );
 agentsRouter.put(
@@ -293,10 +308,10 @@ agentsRouter.delete(
     handleDeleteAgent,
 );
 agentsRouter.post(
-    "/:agent_id/upload",
+    "/:org_id/:agent_id/upload",
     validateQuery("params", uploadFileParams),
-    upload.single("file"),
-    handleUploadFile,
+    upload.array("files", 3),
+    handleUploadFiles,
 );
 agentsRouter.patch(
     "/:agent_id/active",

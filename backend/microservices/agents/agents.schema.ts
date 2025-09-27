@@ -48,6 +48,7 @@ export const getAgentsForOrgParams = yup
 export const uploadFileParams = yup
     .object()
     .shape({
+        org_id: yup.string().trim().required(),
         agent_id: yup.string().trim().required(),
     })
     .strict()
