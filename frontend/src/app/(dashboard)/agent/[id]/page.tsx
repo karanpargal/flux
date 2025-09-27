@@ -156,7 +156,7 @@ export default function AgentInterfacePage() {
                             <h1 className="text-3xl font-bold text-stone-500">
                                 {isEditing ? "Edit Agent" : agent?.name}
                             </h1>
-                            <p className="text-stone-400">
+                            <p className="text-stone-500 text-lg font-medium">
                                 {isEditing
                                     ? "Update agent details"
                                     : "Agent interface and management"}
@@ -290,6 +290,14 @@ export default function AgentInterfacePage() {
                                         </div>
                                         <div>
                                             <label className="block text-base font-medium text-stone-400 mb-1">
+                                                ENS
+                                            </label>
+                                            <p className="text-stone-600 text-lg">
+                                                {agent?.ens}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Description
                                             </label>
                                             <p className="text-stone-600 text-lg">
@@ -313,36 +321,7 @@ export default function AgentInterfacePage() {
                                                 {agent?.org_id}
                                             </p>
                                         </div>
-                                        <div>
-                                            <label className="block text-base font-medium text-stone-400 mb-1">
-                                                Created At
-                                            </label>
-                                            <p className="text-stone-600 text-lg">
-                                                {agent?.created_at
-                                                    ? new Date(
-                                                          agent.created_at
-                                                      ).toLocaleString()
-                                                    : "N/A"}
-                                            </p>
-                                        </div>
-                                        <div>
-                                            <label className="block text-base font-medium text-stone-400 mb-1">
-                                                Status
-                                            </label>
-                                            <p className="text-stone-600 text-lg">
-                                                <span
-                                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                        agent?.active
-                                                            ? "bg-green-100 text-green-800"
-                                                            : "bg-red-100 text-red-800"
-                                                    }`}
-                                                >
-                                                    {agent?.active
-                                                        ? "Active"
-                                                        : "Inactive"}
-                                                </span>
-                                            </p>
-                                        </div>
+
                                         {agent?.resource_urls &&
                                             agent.resource_urls.length > 0 && (
                                                 <div>
@@ -426,22 +405,6 @@ export default function AgentInterfacePage() {
                                 Agent Information
                             </h2>
                             <div className="space-y-4 px-6">
-                                <div>
-                                    <label className="block text-base font-medium text-stone-400 mb-1">
-                                        Agent ID
-                                    </label>
-                                    <p className="text-lg text-stone-500 font-mono bg-stone-50 p-2 rounded">
-                                        {agent?.agent_id}
-                                    </p>
-                                </div>
-                                <div>
-                                    <label className="block text-base font-medium text-stone-400 mb-1">
-                                        Organization ID
-                                    </label>
-                                    <p className="text-lg text-stone-500 font-mono bg-stone-50 p-2 rounded">
-                                        {agent?.org_id}
-                                    </p>
-                                </div>
                                 <div>
                                     <label className="block text-base font-medium text-stone-400 mb-1">
                                         Created
@@ -557,36 +520,6 @@ export default function AgentInterfacePage() {
                                     )}
                             </div>
                         </div>
-
-                        {/* Quick Actions */}
-                        {!isEditing && (
-                            <div className="bg-white py-6 rounded-lg shadow-lg border border-stone-200">
-                                <h2 className="text-xl px-6 border-b pb-4 font-semibold text-stone-500 mb-6">
-                                    Quick Actions
-                                </h2>
-                                <div className="flex gap-3 flex-col px-6">
-                                    <button
-                                        onClick={handleToggleStatus}
-                                        className="px-4 py-2 rounded font-medium transition-colors bg-stone-500 hover:bg-stone-600 text-white"
-                                    >
-                                        Toggle Status
-                                    </button>
-                                    <button
-                                        onClick={() => setIsEditing(true)}
-                                        className="bg-citrus-500 hover:bg-citrus-600 text-white px-4 py-2 rounded font-medium transition-colors"
-                                    >
-                                        Edit Agent
-                                    </button>
-
-                                    <button
-                                        onClick={handleDeleteAgent}
-                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-medium transition-colors"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>
