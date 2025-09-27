@@ -22,15 +22,6 @@ export interface LoginFormProps {
   className?: string;
 }
 
-export interface AgentFormValues {
-  name: string;
-  description: string | null;
-  org_id: string;
-  org_name: string;
-  resource_urls: string[];
-  file_urls: string[];
-}
-
 export interface LegacyAgent {
   id: string;
   name: string;

@@ -4,10 +4,84 @@ import { useState, useCallback, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import * as Yup from "yup";
-import { AgentFormValues } from "../ui/types/form-types";
 import { AgentFormProps } from "../ui/types/page-types";
 import { useCreateAgent } from "../../lib/hooks";
 import { Agent } from "@/lib/types";
+
+// Hardcoded tool definitions matching the Python backend
+const AVAILABLE_TOOLS = [
+  {
+    name: "verify_transaction",
+    displayName: "Transaction Verifier",
+    description:
+      "Verify if a blockchain transaction matches expected parameters",
+    parameters: [
+      {
+        name: "tx_hash",
+        displayName: "Transaction Hash",
+        type: "string",
+        description: "The transaction hash to verify",
+        required: false,
+      },
+      {
+        name: "chain_name",
+        displayName: "Blockchain Name",
+        type: "string",
+        description:
+          "The blockchain name (e.g., 'eth-mainnet', 'polygon-mainnet')",
+        required: false,
+      },
+      {
+        name: "from_address",
+        displayName: "From Address",
+        type: "string",
+        description: "The expected sender address",
+        required: false,
+      },
+      {
+        name: "to_address",
+        displayName: "To Address",
+        type: "string",
+        description:
+          "The expected receiver address (for native) or recipient (for ERC-20)",
+        required: false,
+      },
+      {
+        name: "token_address",
+        displayName: "Token Address",
+        type: "string",
+        description:
+          "The token contract address. Use 'native' for native blockchain token",
+        required: false,
+      },
+      {
+        name: "amount",
+        displayName: "Amount",
+        type: "string",
+        description:
+          "The expected amount (in wei for native, token units for ERC-20)",
+        required: false,
+      },
+      {
+        name: "is_native",
+        displayName: "Is Native Token",
+        type: "boolean",
+        description:
+          "Whether this is a native token transfer (true) or ERC-20 transfer (false)",
+        required: false,
+        default: false,
+      },
+      {
+        name: "allow_overpayment",
+        displayName: "Allow Overpayment",
+        type: "boolean",
+        description: "Whether to allow overpayment (actual amount >= expected)",
+        required: false,
+        default: false,
+      },
+    ],
+  },
+];
 
 const validationSchema = Yup.object({
   name: Yup.string()
@@ -53,6 +127,12 @@ const AgentForm: React.FC<AgentFormProps> = ({
   // File upload state
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [dragActive, setDragActive] = useState<boolean>(false);
+
+  // Capabilities state
+  const [enabledTools, setEnabledTools] = useState<Set<string>>(new Set());
+  const [toolConfigs, setToolConfigs] = useState<
+    Record<string, Record<string, any>>
+  >({});
 
   useEffect(() => {
     if (orgId) setValue("org_id", orgId);
@@ -132,6 +212,35 @@ const AgentForm: React.FC<AgentFormProps> = ({
     [handleFiles]
   );
 
+  // Capabilities handlers
+  const toggleTool = (toolName: string) => {
+    const newEnabledTools = new Set(enabledTools);
+    if (newEnabledTools.has(toolName)) {
+      newEnabledTools.delete(toolName);
+      // Remove tool config when disabled
+      const newToolConfigs = { ...toolConfigs };
+      delete newToolConfigs[toolName];
+      setToolConfigs(newToolConfigs);
+    } else {
+      newEnabledTools.add(toolName);
+    }
+    setEnabledTools(newEnabledTools);
+  };
+
+  const updateToolConfig = (
+    toolName: string,
+    paramName: string,
+    value: any
+  ) => {
+    setToolConfigs((prev) => ({
+      ...prev,
+      [toolName]: {
+        ...prev[toolName],
+        [paramName]: value,
+      },
+    }));
+  };
+
   const handleFormSubmit = async (values: Record<string, unknown>) => {
     try {
       // Parse comma-separated URLs
@@ -149,13 +258,15 @@ const AgentForm: React.FC<AgentFormProps> = ({
         resource_urls: resourceUrls,
         file_urls: uploadedFiles.map((f) => f.name),
         active: (values.active as boolean) ?? true,
-        capabilities: {}, // Default empty capabilities object
+        capabilities: toolConfigs, // Use configured tool parameters
       };
 
       const newAgent = await createAgent.execute(processedValues);
-      onSubmit(values as unknown as AgentFormValues);
+      onSubmit(values as unknown as Agent);
       reset();
       setUploadedFiles([]); // Clear uploaded files
+      setEnabledTools(new Set()); // Clear capabilities
+      setToolConfigs({}); // Clear tool configs
       if (onSuccess) {
         onSuccess(newAgent);
       }
@@ -403,6 +514,113 @@ const AgentForm: React.FC<AgentFormProps> = ({
           </p>
         </div>
 
+        {/* Capabilities Section */}
+        <div>
+          <label className="block text-sm font-medium text-stone-500 mb-4">
+            Capabilities
+          </label>
+          <p className="text-sm text-stone-400 mb-4">
+            Select and configure tools that this agent can use
+          </p>
+
+          <div className="space-y-4">
+            {AVAILABLE_TOOLS.map((tool) => (
+              <div
+                key={tool.name}
+                className="border border-stone-200 rounded-lg p-4"
+              >
+                <div className="flex items-start space-x-3">
+                  <input
+                    type="checkbox"
+                    id={`tool-${tool.name}`}
+                    checked={enabledTools.has(tool.name)}
+                    onChange={() => toggleTool(tool.name)}
+                    className="mt-1 h-4 w-4 text-citrus-600 focus:ring-citrus-500 border-stone-300 rounded"
+                  />
+                  <div className="flex-1">
+                    <label
+                      htmlFor={`tool-${tool.name}`}
+                      className="text-sm font-medium text-stone-700 cursor-pointer"
+                    >
+                      {tool.displayName}
+                    </label>
+                    <p className="text-xs text-stone-500 mt-1">
+                      {tool.description}
+                    </p>
+
+                    {/* Tool Configuration */}
+                    {enabledTools.has(tool.name) && (
+                      <div className="mt-4 space-y-3">
+                        <p className="text-xs font-medium text-stone-600">
+                          Configure Parameters (optional):
+                        </p>
+                        {tool.parameters.map((param) => (
+                          <div key={param.name} className="space-y-1">
+                            <label className="text-xs font-medium text-stone-500">
+                              {param.displayName}
+                            </label>
+                            <p className="text-xs text-stone-400">
+                              {param.description}
+                            </p>
+
+                            {param.type === "boolean" ? (
+                              <div className="flex items-center space-x-2">
+                                <input
+                                  type="checkbox"
+                                  checked={
+                                    toolConfigs[tool.name]?.[param.name] ??
+                                    param.default ??
+                                    false
+                                  }
+                                  onChange={(e) =>
+                                    updateToolConfig(
+                                      tool.name,
+                                      param.name,
+                                      e.target.checked
+                                    )
+                                  }
+                                  className="h-3 w-3 text-citrus-600 focus:ring-citrus-500 border-stone-300 rounded"
+                                />
+                                <span className="text-xs text-stone-600">
+                                  {toolConfigs[tool.name]?.[param.name] ??
+                                  param.default ??
+                                  false
+                                    ? "Yes"
+                                    : "No"}
+                                </span>
+                              </div>
+                            ) : (
+                              <input
+                                type="text"
+                                value={
+                                  toolConfigs[tool.name]?.[param.name] ?? ""
+                                }
+                                onChange={(e) =>
+                                  updateToolConfig(
+                                    tool.name,
+                                    param.name,
+                                    e.target.value
+                                  )
+                                }
+                                placeholder={
+                                  param.default
+                                    ? `Default: ${param.default}`
+                                    : "Leave empty to use default"
+                                }
+                                className="w-full px-2 py-1 text-xs border border-stone-300 rounded focus:outline-none focus:ring-1 focus:ring-citrus-500 focus:border-citrus-500"
+                              />
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         {createAgent.error && (
           <div className="p-4 border border-red-300 bg-red-50 rounded-md">
             <p className="text-sm text-red-600">{createAgent.error}</p>
@@ -424,6 +642,8 @@ const AgentForm: React.FC<AgentFormProps> = ({
             onClick={() => {
               reset();
               setUploadedFiles([]);
+              setEnabledTools(new Set());
+              setToolConfigs({});
               createAgent.reset();
             }}
             className="px-4 py-2 border border-stone-300 text-stone-500 rounded-md hover:bg-stone-50 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"

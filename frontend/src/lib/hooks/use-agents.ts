@@ -85,7 +85,7 @@ export function useAgentsForOrg(orgId: string | null): UseQueryState<Agent[]> {
 export function useCreateAgent(): UseMutationState<
   Agent,
   [
-    Omit<Agent, "agent_id" | "created_at" | "updated_at" | "active"> & {
+    Omit<Agent, "agent_id" | "created_at" | "updated_at"> & {
       org_name: string;
     }
   ]
@@ -94,7 +94,7 @@ export function useCreateAgent(): UseMutationState<
     UseMutationState<
       Agent,
       [
-        Omit<Agent, "agent_id" | "created_at" | "updated_at" | "active"> & {
+        Omit<Agent, "agent_id" | "created_at" | "updated_at"> & {
           org_name: string;
         }
       ]
@@ -109,7 +109,7 @@ export function useCreateAgent(): UseMutationState<
 
   const execute = useCallback(
     async (
-      data: Omit<Agent, "agent_id" | "created_at" | "updated_at" | "active"> & {
+      data: Omit<Agent, "agent_id" | "created_at" | "updated_at"> & {
         org_name: string;
       }
     ): Promise<Agent> => {
