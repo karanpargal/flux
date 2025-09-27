@@ -39,6 +39,14 @@ export interface Agent {
   updated_at: string;
 }
 
+// Agent creation request type (without file_urls since backend generates them)
+export type CreateAgentRequest = Omit<
+  Agent,
+  "agent_id" | "created_at" | "updated_at" | "file_urls"
+> & {
+  org_name: string;
+};
+
 // API Client Configuration
 export interface ApiClientConfig {
   baseUrl: string;

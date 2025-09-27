@@ -1,4 +1,9 @@
-import { Agent, ApiClientConfig, Organization } from "./types";
+import {
+  Agent,
+  ApiClientConfig,
+  CreateAgentRequest,
+  Organization,
+} from "./types";
 
 class ApiClient {
   private baseUrl: string;
@@ -92,15 +97,51 @@ class ApiClient {
     return this.request<Agent[]>(`/api/v1/agents/org/${orgId}`);
   }
 
-  async createAgent(
-    data: Omit<Agent, "agent_id" | "created_at" | "updated_at" | "active"> & {
-      org_name: string;
-    }
-  ): Promise<Agent> {
-    return this.request<Agent>("/api/v1/agents", {
-      method: "POST",
-      body: JSON.stringify(data),
+  async createAgent(data: CreateAgentRequest, files?: File[]): Promise<Agent> {
+    const formData = new FormData();
+
+    // Add all the form fields
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        if (Array.isArray(value)) {
+          formData.append(key, JSON.stringify(value));
+        } else if (typeof value === "object") {
+          formData.append(key, JSON.stringify(value));
+        } else {
+          formData.append(key, String(value));
+        }
+      }
     });
+
+    // Add files if provided
+    if (files && files.length > 0) {
+      files.forEach((file) => {
+        formData.append("files", file);
+      });
+    }
+
+    // Create a new request without the default JSON headers
+    const url = `${this.baseUrl}/api/v1/agents`;
+    const response = await fetch(url, {
+      method: "POST",
+      body: formData,
+      // Don't set Content-Type header, let the browser set it with boundary for multipart/form-data
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(
+        errorData.message || `HTTP ${response.status}: ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.message || "API request failed");
+    }
+
+    return result.data;
   }
 
   async updateAgent(agentId: string, data: Partial<Agent>): Promise<Agent> {

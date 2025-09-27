@@ -2,7 +2,12 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiClient } from "../api-client";
-import { Agent, UseMutationState, UseQueryState } from "../types";
+import {
+  Agent,
+  CreateAgentRequest,
+  UseMutationState,
+  UseQueryState,
+} from "../types";
 
 // Hook to get a single agent
 export function useAgent(agentId: string | null): UseQueryState<Agent> {
@@ -84,21 +89,10 @@ export function useAgentsForOrg(orgId: string | null): UseQueryState<Agent[]> {
 // Hook to create an agent
 export function useCreateAgent(): UseMutationState<
   Agent,
-  [
-    Omit<Agent, "agent_id" | "created_at" | "updated_at"> & {
-      org_name: string;
-    }
-  ]
+  [CreateAgentRequest, File[]?]
 > {
   const [state, setState] = useState<
-    UseMutationState<
-      Agent,
-      [
-        Omit<Agent, "agent_id" | "created_at" | "updated_at"> & {
-          org_name: string;
-        }
-      ]
-    >
+    UseMutationState<Agent, [CreateAgentRequest, File[]?]>
   >({
     data: null,
     loading: false,
@@ -108,15 +102,11 @@ export function useCreateAgent(): UseMutationState<
   });
 
   const execute = useCallback(
-    async (
-      data: Omit<Agent, "agent_id" | "created_at" | "updated_at"> & {
-        org_name: string;
-      }
-    ): Promise<Agent> => {
+    async (data: CreateAgentRequest, files?: File[]): Promise<Agent> => {
       setState((prev) => ({ ...prev, loading: true, error: null }));
 
       try {
-        const result = await apiClient.createAgent(data);
+        const result = await apiClient.createAgent(data, files);
         setState((prev) => ({ ...prev, data: result, loading: false }));
         return result;
       } catch (error) {
