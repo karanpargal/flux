@@ -10,7 +10,8 @@ async def verify_transaction(
     to_address: str,
     token_address: str,
     amount: str,
-    is_native: bool = False
+    is_native: bool = False,
+    allow_overpayment: bool = False
 ) -> Dict[str, Any]:
     """
     Verify if a blockchain transaction matches the expected parameters
@@ -23,6 +24,7 @@ async def verify_transaction(
         token_address: Token contract address (use 'native' for native token)
         amount: Expected amount (in wei for native, token units for ERC-20)
         is_native: Whether this is a native token transfer (True) or a token transfer (False)
+        allow_overpayment: Whether to allow overpayment (actual amount >= expected)
         
     Returns:
         Dictionary with verification result and mismatches if any
@@ -90,13 +92,24 @@ async def verify_transaction(
                 })
             
             # Check amount (main value field for native transfers)
-            actual_amount = tx.get("value", "0")
-            if actual_amount != amount:
-                mismatches.append({
-                    "field": "amount",
-                    "expected": amount,
-                    "actual": actual_amount
-                })
+            actual_amount = int(tx.get("value", "0"))
+            expected_amount = int(amount)
+            
+            if allow_overpayment:
+                if actual_amount < expected_amount:
+                    mismatches.append({
+                        "field": "amount",
+                        "expected": f"At least {amount}",
+                        "actual": str(actual_amount),
+                        "error": "Payment amount is less than expected"
+                    })
+            else:
+                if actual_amount != expected_amount:
+                    mismatches.append({
+                        "field": "amount",
+                        "expected": amount,
+                        "actual": str(actual_amount)
+                    })
                 
         else:
             # For ERC-20 token transfers
@@ -141,13 +154,24 @@ async def verify_transaction(
                             })
                         
                         # Check amount
-                        actual_amount = params[2].get("value", "")
-                        if actual_amount != amount:
-                            mismatches.append({
-                                "field": "amount",
-                                "expected": amount,
-                                "actual": actual_amount
-                            })
+                        actual_amount = int(params[2].get("value", "0"))
+                        expected_amount = int(amount)
+                        
+                        if allow_overpayment:
+                            if actual_amount < expected_amount:
+                                mismatches.append({
+                                    "field": "amount",
+                                    "expected": f"At least {amount}",
+                                    "actual": str(actual_amount),
+                                    "error": "Payment amount is less than expected"
+                                })
+                        else:
+                            if actual_amount != expected_amount:
+                                mismatches.append({
+                                    "field": "amount",
+                                    "expected": amount,
+                                    "actual": str(actual_amount)
+                                })
                         
                         found_transfer = True
                         break
@@ -166,10 +190,20 @@ async def verify_transaction(
                 "mismatches": mismatches
             }
         else:
-            return {
+            result = {
                 "verified": True,
                 "message": "All parameters match"
             }
+            
+            # Add overpayment information if applicable
+            if allow_overpayment and is_native:
+                actual_amount = int(tx.get("value", "0"))
+                expected_amount = int(amount)
+                result["actual_amount"] = str(actual_amount)
+                result["expected_amount"] = amount
+                result["overpayment"] = str(max(0, actual_amount - expected_amount))
+            
+            return result
             
     except Exception as e:
         return {
@@ -213,6 +247,11 @@ def get_transaction_verification_schema() -> Dict[str, Any]:
                 "is_native": {
                     "type": "boolean",
                     "description": "Whether this is a native token transfer (true) or ERC-20 transfer (false)",
+                    "default": False
+                },
+                "allow_overpayment": {
+                    "type": "boolean",
+                    "description": "Whether to allow overpayment (actual amount >= expected)",
                     "default": False
                 }
             },

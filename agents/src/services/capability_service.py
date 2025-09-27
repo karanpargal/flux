@@ -203,6 +203,50 @@ class CapabilityService:
                         },
                         "strict": True
                     }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "process_overpayment_refund",
+                        "description": "Process a refund for overpayment scenarios where user paid more than the expected amount",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "user_address": {
+                                    "type": "string",
+                                    "description": "The user's wallet address to send the refund to"
+                                },
+                                "transaction_hash": {
+                                    "type": "string",
+                                    "description": "The original transaction hash to verify"
+                                },
+                                "expected_amount": {
+                                    "type": "string",
+                                    "description": "The expected/correct amount that should have been paid (in wei)"
+                                },
+                                "agent_private_key": {
+                                    "type": "string",
+                                    "description": "The encrypted private key for the agent's wallet"
+                                },
+                                "refund_chain": {
+                                    "type": "string",
+                                    "description": "The blockchain network for the refund (ethereum, polygon, bsc)",
+                                    "enum": ["ethereum", "polygon", "bsc"]
+                                },
+                                "max_refund_amount": {
+                                    "type": "string",
+                                    "description": "Maximum refund amount allowed (in wei) - overrides company default"
+                                },
+                                "reason": {
+                                    "type": "string",
+                                    "description": "Reason for the refund"
+                                }
+                            },
+                            "required": ["user_address", "transaction_hash", "expected_amount", "agent_private_key", "refund_chain"],
+                            "additionalProperties": False
+                        },
+                        "strict": True
+                    }
                 }
             ],
             CapabilityType.CUSTOMER_SUPPORT.value: [],
@@ -345,7 +389,7 @@ Always maintain technical accuracy, provide actionable solutions, and ensure use
             imports.append("import math")
         
         if CapabilityType.REFUND_PROCESSING.value in capabilities:
-            imports.append("from tools.refund_processor import create_refund_processor, process_refund, validate_refund_request")
+            imports.append("from tools.refund_processor import create_refund_processor, process_refund, validate_refund_request, process_overpayment_refund")
         
         return imports
     
@@ -553,4 +597,51 @@ async def validate_refund_transaction(user_address: str, transaction_hash: str, 
                 return f"❌ Refund validation failed: {result.get('error')}"
                 
     except Exception as e:
-        return f"Error validating refund: {str(e)}"'''
+        return f"Error validating refund: {str(e)}"
+
+async def process_overpayment_refund_transaction(user_address: str, transaction_hash: str, expected_amount: str,
+                                               agent_private_key: str, refund_chain: str, max_refund_amount: str = None,
+                                               reason: str = None) -> str:
+    """Process a refund for overpayment scenarios where user paid more than expected"""
+    try:
+        if not refund_processor:
+            return "Error: Refund processor not initialized. Please configure company refund settings."
+        
+        result = await process_overpayment_refund(
+            refund_processor,
+            user_address=user_address,
+            transaction_hash=transaction_hash,
+            expected_amount=expected_amount,
+            agent_private_key=agent_private_key,
+            refund_chain=refund_chain,
+            max_refund_amount=max_refund_amount,
+            reason=reason
+        )
+        
+        if result.get("success"):
+            overpayment = result.get("overpayment_amount", "0")
+            actual_amount = result.get("actual_amount", "0")
+            expected_amount = result.get("expected_amount", "0")
+            
+            # Convert wei to ETH for display
+            overpayment_eth = float(overpayment) / 1e18
+            actual_eth = float(actual_amount) / 1e18
+            expected_eth = float(expected_amount) / 1e18
+            
+            return f"""✅ Overpayment refund processed successfully! 
+            
+💰 Refund Details:
+   - Expected payment: {expected_eth:.6f} ETH
+   - Actual payment: {actual_eth:.6f} ETH  
+   - Overpayment refunded: {overpayment_eth:.6f} ETH
+   - Refund transaction hash: {result.get('refund_tx_hash')}
+   
+The difference has been refunded to your wallet address: {user_address}"""
+        else:
+            if result.get("escalation_required"):
+                return f"⚠️ {result.get('error')} - Human intervention required."
+            else:
+                return f"❌ Overpayment refund failed: {result.get('error')}"
+                
+    except Exception as e:
+        return f"Error processing overpayment refund: {str(e)}"'''

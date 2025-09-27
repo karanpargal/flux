@@ -2,6 +2,7 @@ import os
 import uuid
 import asyncio
 import httpx
+import time
 from datetime import datetime
 from typing import Dict, Any, List, Optional
 from fastapi import HTTPException
@@ -225,7 +226,7 @@ agent_config = AgentConfig()
 {f"""
 # Initialize refund processor with company configuration
 if refund_config:
-    initialize_refund_processor(
+    create_refund_processor(
         company_id=refund_config.get('company_id', COMPANY_ID),
         max_refund_amount=refund_config.get('max_refund_amount', '1000000000000000000'),
         expected_address=refund_config.get('expected_address', ''),
@@ -818,6 +819,12 @@ agent.include(protocol, publish_manifest=True)
 
 print(f"Company Agent {{agent.address}} for {{COMPANY_NAME}} is ready")
 
+# Write the agent address to a file for the service to read
+import os
+agent_address_file = os.path.join(os.path.dirname(__file__), "agent_address.txt")
+with open(agent_address_file, "w") as f:
+    f.write(agent.address)
+
 if __name__ == "__main__":
     agent.run()
 '''
@@ -868,7 +875,8 @@ if __name__ == "__main__":
                     detail=f"Company agent failed to start: {stderr}"
                 )
             
-            agent_address = f"agent_{agent_id}@{agent_config.agent_name}"
+            agent_address = await self.get_agent_address_from_file(agent_id)
+            print(f"📍 Retrieved agent address: {agent_address}")
             
             
             self.company_agents_registry[agent_id] = {
@@ -935,6 +943,39 @@ if __name__ == "__main__":
         
         return filepath
     
+    async def get_agent_address_from_file(self, agent_id: str, timeout: int = 10) -> str:
+        """Wait for and read the agent address from the file created by the agent"""
+        agent_folder = os.path.join(os.getcwd(), self.settings.company_agents_directory, f"agent_{agent_id}")
+        address_file = os.path.join(agent_folder, "agent_address.txt")
+        
+        # Wait for the file to be created (agent needs time to start up)
+        start_time = time.time()
+        while time.time() - start_time < timeout:
+            if os.path.exists(address_file):
+                try:
+                    with open(address_file, 'r') as f:
+                        agent_address = f.read().strip()
+                    if agent_address:  # Make sure we got a valid address
+                        return agent_address
+                except Exception as e:
+                    print(f"Error reading agent address file: {e}")
+            await asyncio.sleep(0.5)  # Check every 500ms
+        
+        # If we couldn't get the address, return a fallback
+        return f"agent_{agent_id}@unknown"
+    
+    async def update_agent_address_in_registry(self, agent_id: str):
+        """Update the agent address in registry for an existing running agent"""
+        if agent_id in self.company_agents_registry:
+            try:
+                real_address = await self.get_agent_address_from_file(agent_id, timeout=5)
+                if not real_address.endswith("@unknown"):
+                    self.company_agents_registry[agent_id]["address"] = real_address
+                    print(f"📍 Updated registry with real address for {agent_id}: {real_address}")
+                    return real_address
+            except Exception as e:
+                print(f"Failed to update address for agent {agent_id}: {e}")
+        return None
     
     def list_company_agents(self) -> List[CompanyAgentResponse]:
         """List all company agents"""
