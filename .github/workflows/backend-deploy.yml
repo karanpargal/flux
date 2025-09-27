@@ -1,0 +1,95 @@
+name: Agents Python Server CI/CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          cd agents
+          pip install -r requirements.txt
+
+      - name: Create source package
+        run: |
+          # Create a clean copy of the agents source code
+          mkdir -p temp-source
+          rsync -av --exclude=__pycache__ \
+                    --exclude=*.pyc \
+                    --exclude=.git \
+                    --exclude=temp-source \
+                    --exclude=logs \
+                    --exclude=*.log \
+                    --exclude=.env* \
+                    --exclude=.pytest_cache \
+                    agents/ temp-source/
+          cd temp-source
+          tar -czf ../source.tar.gz .
+          cd ..
+          rm -rf temp-source
+
+      - name: Deploy to EC2
+        run: |
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key
+          chmod 600 private_key
+
+          # Upload source code
+          scp -o StrictHostKeyChecking=no -i private_key source.tar.gz ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }}:/tmp/
+
+          # Extract, install and restart Python server
+          ssh -o StrictHostKeyChecking=no -i private_key ${{ secrets.REMOTE_USER }}@${{ secrets.REMOTE_HOST }} '
+            # Create backup of current deployment
+            if [ -d "agents-server" ]; then
+              mv agents-server agents-server-backup-$(date +%Y%m%d-%H%M%S) || true
+            fi
+            
+            # Create new deployment directory
+            mkdir -p agents-server
+            cd agents-server
+            
+            # Extract source code
+            tar -xzf /tmp/source.tar.gz
+            
+            # Create .env file from GitHub secrets
+            echo "${{ secrets.ENV_AGENTS }}" > .env
+            
+            # Install Python dependencies
+            pip install -r requirements.txt
+            
+            # Create logs directory
+            mkdir -p logs
+            
+            # Stop and delete existing PM2 processes
+            pm2 stop all || true
+            pm2 delete all || true
+            
+            # Start the Python FastAPI server with PM2
+            pm2 start ecosystem.config.js
+            
+            # Wait a moment for the server to start
+            sleep 5
+            
+            # Check if the server is running
+            pm2 status
+            
+            # Clean up
+            rm -f /tmp/source.tar.gz
+            
+            # Remove old backups (keep last 3)
+            cd ..
+            ls -t agents-server-backup-* 2>/dev/null | tail -n +4 | xargs rm -rf || true
+          '
+          rm -f private_key source.tar.gz
