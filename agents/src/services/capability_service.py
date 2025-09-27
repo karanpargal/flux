@@ -319,18 +319,17 @@ class CapabilityService:
         support_categories_str = ', '.join(support_categories) if support_categories else "general, technical, billing"
         company_products_str = ', '.join(company_products) if company_products else "products and services"
         
-        system_prompt = f"""You are an expert AI support agent for {company_name}, specializing in crypto payment solutions and blockchain integration.
+        has_document_search = CapabilityType.DOCUMENT_REFERENCE.value in capabilities
+        
+        system_prompt = f"""You are an expert AI support agent for {company_name}, with deep knowledge of their specific products, services, and documentation.
 
-EXPERTISE AREAS:
-- Advanced crypto payment gateway integration
-- Blockchain transaction processing and verification
-- Multi-chain payment solutions (Ethereum, Polygon, BSC)
-- API integration and webhook management
-- Payment link generation and management
-- Recurring payment subscriptions
-- Invoice creation and management
-- Refund processing and dispute resolution
-- Security best practices for crypto payments
+🏢 COMPANY CONTEXT:
+- Company: {company_name}
+- Products/Services: {company_products_str}
+- Support Categories: {support_categories_str}
+
+📚 DOCUMENT-DRIVEN EXPERTISE:
+You have access to {company_name}'s complete documentation, product guides, API references, policies, and knowledge base. Your responses MUST be grounded in this company-specific information.
 
 CAPABILITIES:
 {chr(10).join(capability_descriptions)}
@@ -338,40 +337,58 @@ CAPABILITIES:
 AVAILABLE TOOLS:
 {chr(10).join(tools_description)}
 
-COMPANY PRODUCTS/SERVICES: {company_products_str}
-SUPPORT CATEGORIES: {support_categories_str}
+🎯 DOCUMENT-FIRST RESPONSE PROTOCOL:
 
-ROBUST OPERATIONAL PROTOCOL:
-1. AUTOMATIC INFORMATION GATHERING: For ANY question about {company_name}, immediately search company documents and web resources using multiple search strategies:
-   - Use search_company_documents with comprehensive search terms: ["integration", "API", "payment", "crypto", "setup", "configuration", "webhook", "authentication", "endpoints", "SDK", "documentation"]
-   - Use calculate for mathematical calculations and conversions when needed
+1. MANDATORY DOCUMENT CONSULTATION:
+   {"- For EVERY user question, IMMEDIATELY search company documents using search_company_documents" if has_document_search else "- Always reference provided company context and documentation"}
+   - Use comprehensive search terms related to the user's query
+   - Search for: product features, API endpoints, configuration steps, troubleshooting guides, policies, pricing, integrations
+   - Always extract specific details, examples, and instructions from the documents
 
-2. COMPREHENSIVE RESPONSE STRATEGY:
-   - Provide detailed, technical answers with code examples when relevant
-   - Include step-by-step integration guides
-   - Reference specific API endpoints, parameters, and authentication methods
-   - Offer multiple implementation approaches (SDK, REST API, webhooks)
-   - Include troubleshooting steps and common issues
+2. DOCUMENT-BASED RESPONSES:
+   - Quote relevant sections from company documentation
+   - Reference specific page numbers, sections, or document names when available
+   - Provide exact API endpoints, parameters, and code examples from the docs
+   - Use the company's official terminology and naming conventions
+   - Include specific version numbers, requirements, and compatibility information
 
-3. TECHNICAL DEPTH:
-   - Explain blockchain concepts clearly
-   - Provide code snippets for popular frameworks (React, Node.js, Python, etc.)
-   - Include security considerations and best practices
-   - Reference official documentation and examples
-   - Offer testing and debugging guidance
+3. COMPREHENSIVE INFORMATION EXTRACTION:
+   - Extract step-by-step procedures directly from documentation
+   - Identify and explain company-specific features and configurations
+   - Reference pricing, limits, and policy information from official docs
+   - Provide troubleshooting steps and error codes from support documentation
+   - Include links to specific documentation sections when mentioned
 
-4. PROACTIVE SUPPORT:
-   - Anticipate follow-up questions and provide comprehensive answers
-   - Suggest related features and integrations
-   - Offer optimization recommendations
-   - Provide migration guides when applicable
+4. ACCURACY AND COMPLETENESS:
+   - Never make assumptions - only provide information found in the documents
+   - If information is not in the documents, clearly state this limitation
+   - Cross-reference multiple document sections for comprehensive answers
+   - Verify technical details against official documentation
+   - Provide alternative solutions if multiple approaches are documented
 
-5. ESCALATION PROTOCOL:
-   - For complex technical issues, provide detailed analysis and multiple solution paths
-   - For security concerns, emphasize verification steps and best practices
-   - For integration challenges, offer debugging steps and alternative approaches
+5. ENHANCED USER EXPERIENCE:
+   - Structure responses with clear headings and bullet points
+   - Provide code examples exactly as they appear in documentation
+   - Include prerequisites and dependencies mentioned in docs
+   - Offer related features and integrations documented by the company
+   - Suggest next steps based on documented workflows
 
-Always maintain technical accuracy, provide actionable solutions, and ensure users have everything needed for successful implementation."""
+6. ESCALATION AND LIMITATIONS:
+   - If the query requires information not in the documentation, suggest contacting support
+   - For complex integrations, reference the most detailed documentation sections
+   - When multiple solutions exist, present all documented options
+   - Always prioritize official documentation over general knowledge
+
+🔍 SEARCH STRATEGY:
+When using search_company_documents, employ multiple search approaches:
+- Primary keywords from user query
+- Related technical terms and synonyms
+- Product names and feature names
+- API endpoints and method names
+- Error messages and troubleshooting terms
+- Configuration and setup keywords
+
+REMEMBER: Your expertise comes from {company_name}'s specific documentation. Always ground your responses in their official materials, procedures, and guidelines. You are representing {company_name} and should reflect their specific approach, terminology, and solutions."""
 
         return system_prompt
     
@@ -415,74 +432,155 @@ Always maintain technical accuracy, provide actionable solutions, and ensure use
         """Generate robust document search function"""
         default_urls = pdf_document_urls or []
         return f'''async def search_company_documents(search_terms: List[str], document_urls: List[str] = None) -> str:
-    """Comprehensive search through company documents with advanced matching"""
-    print(f"🔍 Advanced document search with terms: {{search_terms}}, urls: {{document_urls}}")
+    """Advanced company document search with intelligent content extraction and relevance scoring"""
+    print(f"🔍 Searching company documents for: {{search_terms}}")
     try:
         from tools.pdf_reader import PDFReader
         import re
         
-        # Initialize readers
+        # Initialize PDF reader
         pdf_reader = PDFReader()
         
-        # Enhanced search terms with variations
-        enhanced_terms = []
+        # Enhanced search terms with intelligent variations and context
+        enhanced_terms = set()
         for term in search_terms:
-            enhanced_terms.append(term.lower())
-            enhanced_terms.append(term.upper())
-            enhanced_terms.append(term.title())
-            # Add common variations
-            if "api" in term.lower():
-                enhanced_terms.extend(["API", "api", "Api", "REST", "rest"])
-            if "payment" in term.lower():
-                enhanced_terms.extend(["Payment", "payments", "transaction", "transactions"])
-            if "crypto" in term.lower():
-                enhanced_terms.extend(["cryptocurrency", "blockchain", "crypto", "digital currency"])
+            # Add original term and variations
+            enhanced_terms.add(term.lower())
+            enhanced_terms.add(term.upper())
+            enhanced_terms.add(term.title())
+            enhanced_terms.add(term.capitalize())
+            
+            # Add domain-specific variations
+            term_lower = term.lower()
+            if "api" in term_lower:
+                enhanced_terms.update(["API", "api", "Api", "REST", "rest", "endpoint", "endpoints", "integration"])
+            if "payment" in term_lower:
+                enhanced_terms.update(["payment", "payments", "transaction", "transactions", "billing", "invoice", "checkout"])
+            if "crypto" in term_lower:
+                enhanced_terms.update(["crypto", "cryptocurrency", "blockchain", "bitcoin", "ethereum", "digital currency", "token"])
+            if "setup" in term_lower or "config" in term_lower:
+                enhanced_terms.update(["setup", "configuration", "install", "installation", "getting started", "quickstart"])
+            if "auth" in term_lower:
+                enhanced_terms.update(["authentication", "authorization", "auth", "login", "credentials", "token", "key"])
+            if "webhook" in term_lower:
+                enhanced_terms.update(["webhook", "webhooks", "callback", "notification", "event"])
         
         search_results = []
         urls_to_search = document_urls if document_urls else default_urls
         
+        print(f"📚 Searching {{len(urls_to_search)}} documents with {{len(enhanced_terms)}} search variations")
+        
         for url in urls_to_search:
             try:
-                print(f"📄 Processing document: {{url}}")
+                print(f"📄 Processing: {{url}}")
                 
-                # Only process PDF files now
-                if url.lower().endswith('.pdf') or 'pdf' in url.lower():
-                    result = await pdf_reader.read_pdf_from_url(url, max_length=15000)
-                else:
-                    # Skip non-PDF files
-                    print(f"⚠️ Skipping non-PDF document: {{url}}")
+                # Only process PDF files
+                if not (url.lower().endswith('.pdf') or 'pdf' in url.lower()):
+                    print(f"⚠️ Skipping non-PDF: {{url}}")
                     continue
                 
-                if result.get("success") and result.get("content"):
-                    content = result.get("content", "")
-                    content_lower = content.lower()
+                result = await pdf_reader.read_pdf_from_url(url, max_length=20000)
+                
+                if not (result.get("success") and result.get("content")):
+                    print(f"❌ Failed to read {{url}}: {{result.get('error', 'Unknown error')}}")
+                    continue
+                
+                content = result.get("content", "")
+                content_lower = content.lower()
+                
+                # Advanced content extraction with relevance scoring
+                relevant_sections = []
+                section_scores = {{}}
+                
+                # Split content into logical sections (paragraphs)
+                paragraphs = [p.strip() for p in content.split('\\n\\n') if len(p.strip()) > 50]
+                
+                for i, paragraph in enumerate(paragraphs):
+                    paragraph_lower = paragraph.lower()
+                    matches = []
+                    score = 0
                     
-                    # Advanced term matching with context
-                    found_terms_with_context = []
+                    # Check for term matches in this paragraph
                     for term in enhanced_terms:
-                        if term.lower() in content_lower:
-                            # Find context around the term
-                            start_idx = content_lower.find(term.lower())
-                            if start_idx != -1:
-                                context_start = max(0, start_idx - 100)
-                                context_end = min(len(content), start_idx + len(term) + 100)
-                                context = content[context_start:context_end].strip()
-                                found_terms_with_context.append(f"'{{term}}': {{context}}")
+                        if term.lower() in paragraph_lower:
+                            matches.append(term)
+                            # Higher score for exact matches
+                            if term.lower() in search_terms:
+                                score += 3
+                            else:
+                                score += 1
                     
-                    if found_terms_with_context:
-                        doc_type = "PDF"
-                        search_results.append(f"📋 {{doc_type}} Document ({{url}}):\\n" + "\\n".join(found_terms_with_context))
+                    # Bonus for multiple term matches (indicates comprehensive coverage)
+                    if len(matches) > 1:
+                        score += len(matches)
+                    
+                    # Bonus for paragraphs with structured content (lists, steps, etc.)
+                    if any(indicator in paragraph_lower for indicator in ['step', 'example', 'code', '1.', '2.', '•', '-']):
+                        score += 2
+                    
+                    if matches and score > 0:
+                        relevant_sections.append({{
+                            'paragraph': paragraph,
+                            'matches': matches,
+                            'score': score,
+                            'position': i
+                        }})
+                
+                # Sort by relevance score and select top sections
+                relevant_sections.sort(key=lambda x: x['score'], reverse=True)
+                top_sections = relevant_sections[:5]  # Top 5 most relevant sections
+                
+                if top_sections:
+                    doc_name = url.split('/')[-1] if '/' in url else url
+                    doc_result = f"📋 **{{doc_name}}** (Relevance Score: {{sum(s['score'] for s in top_sections)}})\\n"
+                    
+                    for section in top_sections:
+                        matched_terms = ', '.join(set(section['matches'][:3]))  # Show top 3 matches
+                        doc_result += f"\\n🎯 **Found: {{matched_terms}}** (Score: {{section['score']}})\\n"
+                        
+                        # Clean and format the paragraph
+                        clean_paragraph = section['paragraph'].replace('\\n', ' ').strip()
+                        if len(clean_paragraph) > 400:
+                            # Find a good break point
+                            break_point = clean_paragraph.find('. ', 300)
+                            if break_point == -1:
+                                break_point = 400
+                            clean_paragraph = clean_paragraph[:break_point] + "..."
+                        
+                        doc_result += f"```\\n{{clean_paragraph}}\\n```\\n"
+                    
+                    search_results.append(doc_result)
+                else:
+                    print(f"📄 No relevant content found in {{url}}")
                         
             except Exception as e:
-                search_results.append(f"❌ Error processing {{url}}: {{str(e)}}")
+                print(f"❌ Error processing {{url}}: {{str(e)}}")
+                search_results.append(f"❌ Error accessing {{url}}: {{str(e)}}")
         
+        # Compile final results
         if search_results:
-            return f"📚 COMPREHENSIVE SEARCH RESULTS:\\n\\n" + "\\n\\n".join(search_results)
+            header = f"📚 **COMPANY DOCUMENTATION SEARCH RESULTS**\\n"
+            header += f"🔍 **Query:** {{', '.join(search_terms)}}\\n"
+            header += f"📊 **Documents Searched:** {{len(urls_to_search)}} | **Results Found:** {{len(search_results)}}\\n"
+            header += f"{'='*50}\\n\\n"
+            
+            return header + "\\n\\n".join(search_results)
         else:
-            return f"🔍 No relevant information found for terms: {{', '.join(search_terms)}}\\n\\nSearched {{len(urls_to_search)}} documents."
+            return f"""🔍 **NO RESULTS FOUND**
+
+**Search Terms:** {{', '.join(search_terms)}}
+**Documents Searched:** {{len(urls_to_search)}}
+
+**Suggestions:**
+- Try broader search terms
+- Check if the information might be in a different section
+- Consider alternative terminology your company might use
+- Verify that the uploaded documents contain the information you're looking for
+
+**Available Documents:** {{len(urls_to_search)}} PDF files"""
             
     except Exception as e:
-        return f"❌ Error in document search: {{str(e)}}"'''
+        return f"❌ **SEARCH ERROR:** {{str(e)}}\\n\\nPlease try again with different search terms or contact support if the issue persists."'''
     
     def _get_transaction_verification_function(self) -> str:
         """Generate transaction verification function"""

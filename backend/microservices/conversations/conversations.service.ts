@@ -158,7 +158,7 @@ export const processChatCompletion = async ({
                 },
             ],
             model: "asi1-fast",
-            temperature: 0.7,
+            temperature: 0.3,
             max_tokens: 1000,
             stream: false,
         };

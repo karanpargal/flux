@@ -80,16 +80,30 @@ class CompanyAgentService:
                 print(f"📊 Total content length: {len(content)} characters")
                 print(f"📄 Total pages: {result.get('page_count', 0)}")
                 
-                # Add metadata header to the context
+                # Add comprehensive metadata header to the context
                 pdf_context = f"""
-=== COMPANY DOCUMENT CONTEXT ===
-Processed Documents: {processed_count}/{total_attempted}
-Total Pages: {result.get('page_count', 0)}
-Total Content Length: {len(content)} characters
-Source URLs: {', '.join(pdf_document_urls)}
+=== COMPANY KNOWLEDGE BASE ===
+📚 DOCUMENT SUMMARY:
+- Processed Documents: {processed_count}/{total_attempted}
+- Total Pages: {result.get('page_count', 0)}
+- Content Length: {len(content)} characters
+- Source Files: {', '.join([url.split('/')[-1] for url in pdf_document_urls])}
 
+🎯 CONTENT GUIDANCE:
+This knowledge base contains your company's official documentation including:
+- Product specifications and features
+- API documentation and integration guides
+- Setup and configuration instructions
+- Troubleshooting guides and FAQs
+- Policies and procedures
+- Technical specifications and requirements
+
+📋 DOCUMENT CONTENT:
 {content}
-=== END COMPANY DOCUMENT CONTEXT ===
+
+=== END COMPANY KNOWLEDGE BASE ===
+
+🔍 IMPORTANT: Always search and reference this knowledge base when answering user questions. Use the search_company_documents tool to find specific information related to user queries.
 """
                 
                 print(f"📋 Generated comprehensive PDF context: {len(pdf_context)} characters")
@@ -229,8 +243,12 @@ system_prompt = f"""{system_prompt}"""
 document_context = f"""{document_context}"""
 
 # Log document context for debugging
-print(f"Agent document context length: {{len(document_context)}} characters")
-print(f"Agent document context preview: {{document_context[:500]}}...")
+print(f"📚 Agent knowledge base loaded: {{len(document_context)}} characters")
+if document_context.strip():
+    print(f"📋 Knowledge base preview: {{document_context[:500]}}...")
+    print("✅ Document-driven responses enabled")
+else:
+    print("⚠️ No document context available - responses will be based on general knowledge only")
 
 # Define available tools for the support agent following ASI:One format
 def get_available_tools():
@@ -287,7 +305,7 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
             ],
             tools=get_available_tools(),
             tool_choice="auto",
-            max_tokens=2048,
+            max_tokens=20000,
         )
         
         message = r.choices[0].message
@@ -406,7 +424,7 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
                 model="asi1-fast",
                 messages=follow_up_messages,
                 tools=get_available_tools(),  # Include tools for safety
-                max_tokens=2048,
+                max_tokens=20000,
             )
             response = str(final_response.choices[0].message.content)
         else:
@@ -532,7 +550,7 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
             ],
             tools=get_available_tools(),
             tool_choice="auto",
-            max_tokens=2048,
+            max_tokens=20000,
         )
         
         message_obj = r.choices[0].message
@@ -650,7 +668,7 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
                 model="asi1-fast",
                 messages=follow_up_messages,
                 tools=get_available_tools(),
-                max_tokens=2048,
+                max_tokens=20000,
             )
             return str(final_response.choices[0].message.content)
         else:
@@ -677,7 +695,7 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
             messages=all_messages,
             tools=get_available_tools(),
             tool_choice="auto",
-            max_tokens=2048,
+            max_tokens=20000,
         )
         
         message_obj = r.choices[0].message
@@ -793,7 +811,7 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
                 model=model,
                 messages=follow_up_messages,
                 tools=get_available_tools(),
-                max_tokens=2048,
+                max_tokens=20000,
             )
             return str(final_response.choices[0].message.content)
         else:

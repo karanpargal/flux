@@ -10,6 +10,7 @@ export const createOrg = async ({
     team_size,
     email,
     password,
+    multisig_wallet_address,
 }: MappedOrg) => {
     const log = logger.scoped("createOrg");
 
@@ -19,6 +20,7 @@ export const createOrg = async ({
             industry,
             name,
             team_size,
+            multisig_wallet_address,
             email,
             password,
         })

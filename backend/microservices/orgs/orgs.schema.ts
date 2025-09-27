@@ -7,7 +7,7 @@ export const createOrgBody = yup
     .shape<PartialYupSchema<MappedOrg>>({
         name: yup.string().trim().required(),
         industry: yup.string().oneOf(["Tech"]).required(),
-        // multisig_wallet_address: evmAddressSchema.nullable(),
+        multisig_wallet_address: yup.string().nullable(),
         team_size: yup.number().integer().min(1).required(),
         email: yup.string().email().nullable(),
         password: yup.string().required(),
@@ -21,7 +21,7 @@ export const updateOrgBody = yup
     .shape<PartialYupSchema<MappedOrg>>({
         name: yup.string().trim().required(),
         industry: yup.string().oneOf(["Tech"]).required(),
-        // multisig_wallet_address: evmAddressSchema.required(),
+        multisig_wallet_address: yup.string().nullable(),
         team_size: yup.number().integer().min(1).required(),
         email: yup.string().email().nullable().required(),
     })
