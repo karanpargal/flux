@@ -187,7 +187,7 @@ export const getAgentById = async (agent_id: string) => {
 
     const { data, error } = await SupabaseService.getSupabase()
         .from("agents")
-        .select()
+        .select("*, orgs(*)")
         .eq("agent_id", agent_id)
         .single();
 
