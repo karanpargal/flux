@@ -1,0 +1,329 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: Inter, var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    --font-mono: var(--font-geist-mono);
+
+    /* Retro Color Palette - Synthwave/80s inspired */
+    --color-retro-50: #fef7ff;
+    --color-retro-100: #fceeff;
+    --color-retro-200: #f8ddff;
+    --color-retro-300: #f2bbff;
+    --color-retro-400: #e888ff;
+    --color-retro-500: #dd5eff;
+    --color-retro-600: #d133ff;
+    --color-retro-700: #b91cff;
+    --color-retro-800: #9a1ae6;
+    --color-retro-900: #7c1bb8;
+    --color-retro-950: #4d0a7a;
+
+    /* Neon Cyan Color Palette */
+    --color-cyan-50: #ecfeff;
+    --color-cyan-100: #cffafe;
+    --color-cyan-200: #a5f3fc;
+    --color-cyan-300: #67e8f9;
+    --color-cyan-400: #22d3ee;
+    --color-cyan-500: #06b6d4;
+    --color-cyan-600: #0891b2;
+    --color-cyan-700: #0e7490;
+    --color-cyan-800: #155e75;
+    --color-cyan-900: #164e63;
+    --color-cyan-950: #083344;
+
+    /* Neon Pink Color Palette */
+    --color-pink-50: #fdf2f8;
+    --color-pink-100: #fce7f3;
+    --color-pink-200: #fbcfe8;
+    --color-pink-300: #f9a8d4;
+    --color-pink-400: #f472b6;
+    --color-pink-500: #ec4899;
+    --color-pink-600: #db2777;
+    --color-pink-700: #be185d;
+    --color-pink-800: #9d174d;
+    --color-pink-900: #831843;
+    --color-pink-950: #500724;
+
+    /* Dark Color Palette */
+    --color-dark-50: #f8fafc;
+    --color-dark-100: #f1f5f9;
+    --color-dark-200: #e2e8f0;
+    --color-dark-300: #cbd5e1;
+    --color-dark-400: #94a3b8;
+    --color-dark-500: #64748b;
+    --color-dark-600: #475569;
+    --color-dark-700: #334155;
+    --color-dark-800: #1e293b;
+    --color-dark-900: #0f172a;
+    --color-dark-950: #020617;
+}
+
+body {
+    color: #ffffff;
+    background: linear-gradient(
+        135deg,
+        var(--color-dark-950) 0%,
+        var(--color-dark-900) 25%,
+        #1a0b2e 50%,
+        var(--color-dark-900) 75%,
+        var(--color-dark-950) 100%
+    );
+    font-family: Inter, var(--font-geist-sans), Arial, Helvetica, sans-serif;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Retro grid pattern overlay */
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: linear-gradient(
+            rgba(221, 94, 255, 0.1) 1px,
+            transparent 1px
+        ),
+        linear-gradient(90deg, rgba(221, 94, 255, 0.1) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@theme inline {
+    --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+    --radius: 0.625rem;
+    --background: oklch(0.05 0 0);
+    --foreground: oklch(0.95 0 0);
+    --card: oklch(0.1 0.1 300);
+    --card-foreground: oklch(0.95 0 0);
+    --popover: oklch(0.1 0.1 300);
+    --popover-foreground: oklch(0.95 0 0);
+    --primary: oklch(0.7 0.2 300);
+    --primary-foreground: oklch(0.95 0 0);
+    --secondary: oklch(0.15 0.1 300);
+    --secondary-foreground: oklch(0.95 0 0);
+    --muted: oklch(0.15 0.1 300);
+    --muted-foreground: oklch(0.6 0 0);
+    --accent: oklch(0.2 0.15 300);
+    --accent-foreground: oklch(0.95 0 0);
+    --destructive: oklch(0.577 0.245 27.325);
+    --border: oklch(0.2 0.1 300);
+    --input: oklch(0.2 0.1 300);
+    --ring: oklch(0.7 0.2 300);
+    --chart-1: oklch(0.7 0.2 300);
+    --chart-2: oklch(0.6 0.15 200);
+    --chart-3: oklch(0.6 0.1 100);
+    --chart-4: oklch(0.6 0.25 250);
+    --chart-5: oklch(0.6 0.2 300);
+    --sidebar: oklch(0.1 0.1 300);
+    --sidebar-foreground: oklch(0.95 0 0);
+    --sidebar-primary: oklch(0.7 0.2 300);
+    --sidebar-primary-foreground: oklch(0.95 0 0);
+    --sidebar-accent: oklch(0.15 0.1 300);
+    --sidebar-accent-foreground: oklch(0.95 0 0);
+    --sidebar-border: oklch(0.2 0.1 300);
+    --sidebar-ring: oklch(0.7 0.2 300);
+}
+
+@layer base {
+    * {
+        @apply border-border outline-ring/50;
+    }
+    body {
+        @apply bg-background text-foreground;
+    }
+}
+
+/* Retro animations */
+@keyframes neon-glow {
+    0%,
+    100% {
+        text-shadow: 0 0 5px var(--color-retro-500),
+            0 0 10px var(--color-retro-500), 0 0 15px var(--color-retro-500),
+            0 0 20px var(--color-retro-500);
+    }
+    50% {
+        text-shadow: 0 0 2px var(--color-retro-500),
+            0 0 5px var(--color-retro-500), 0 0 8px var(--color-retro-500),
+            0 0 12px var(--color-retro-500);
+    }
+}
+
+@keyframes retro-pulse {
+    0%,
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 20px var(--color-retro-500);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 40px var(--color-retro-500),
+            0 0 60px var(--color-retro-500);
+    }
+}
+
+@keyframes float-retro {
+    0%,
+    100% {
+        transform: translateY(0px) rotate(0deg);
+    }
+    33% {
+        transform: translateY(-10px) rotate(1deg);
+    }
+    66% {
+        transform: translateY(-5px) rotate(-1deg);
+    }
+}
+
+@keyframes scan-line {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    50% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh);
+        opacity: 0;
+    }
+}
+
+.animate-neon-glow {
+    animation: neon-glow 2s ease-in-out infinite;
+}
+
+.animate-retro-pulse {
+    animation: retro-pulse 3s ease-in-out infinite;
+}
+
+.animate-float-retro {
+    animation: float-retro 4s ease-in-out infinite;
+}
+
+.animate-scan-line {
+    animation: scan-line 8s linear infinite;
+}
+
+/* Retro button styles */
+.retro-button {
+    background: linear-gradient(
+        45deg,
+        var(--color-retro-600),
+        var(--color-retro-400)
+    );
+    border: 2px solid var(--color-retro-500);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.retro-button:hover {
+    background: linear-gradient(
+        45deg,
+        var(--color-retro-500),
+        var(--color-retro-300)
+    );
+    box-shadow: 0 0 20px var(--color-retro-500);
+    transform: translateY(-2px);
+}
+
+.retro-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
+        transparent
+    );
+    transition: left 0.5s;
+}
+
+.retro-button:hover::before {
+    left: 100%;
+}
+
+/* Retro card styles */
+.retro-card {
+    background: rgba(26, 11, 46, 0.8);
+    border: 1px solid var(--color-retro-500);
+    border-radius: 12px;
+    padding: 24px;
+    backdrop-filter: blur(10px);
+    position: relative;
+    overflow: hidden;
+}
+
+.retro-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        var(--color-retro-500),
+        var(--color-cyan-500),
+        var(--color-pink-500)
+    );
+}
+
+.retro-card:hover {
+    border-color: var(--color-retro-400);
+    box-shadow: 0 0 30px rgba(221, 94, 255, 0.3);
+}
