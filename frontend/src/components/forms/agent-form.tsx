@@ -31,12 +31,12 @@ const AVAILABLE_CAPABILITIES = [
     parameters: [
       {
         name: "max_refund_amount",
-        displayName: "Maximum Refund Amount (in wei)",
+        displayName: "Maximum Refund Amount",
         type: "string",
         description:
-          "Maximum refund amount allowed in wei (e.g., 1000000000000000000 for 1 ETH)",
+          "Maximum refund amount allowed",
         required: false,
-        placeholder: "1000000000000000000",
+        placeholder: "1000",
       },
       {
         name: "expected_address",
@@ -72,11 +72,11 @@ const AVAILABLE_CAPABILITIES = [
       },
       {
         name: "escalation_threshold",
-        displayName: "Escalation Threshold (in wei)",
+        displayName: "Escalation Threshold",
         type: "string",
-        description: "Amount above which refunds require human approval (optional)",
+        description: "Amount above which refunds require human approval",
         required: false,
-        placeholder: "500000000000000000",
+        placeholder: "5000",
       },
     ],
   },

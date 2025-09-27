@@ -37,7 +37,7 @@ export interface Agent {
     org_id: string;
     resource_urls: string[];
     updated_at: string;
-    ens: string;
+    ens?: string;
 }
 
 // Agent creation request type (without file_urls since backend generates them)

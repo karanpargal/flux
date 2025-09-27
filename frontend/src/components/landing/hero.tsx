@@ -14,15 +14,13 @@ export const Hero: React.FC<LandingPageProps> = ({ className = "" }) => {
             {/* Hero Section */}
             <section className="relative z-10 p-24 px-4 sm:px-6 lg:px-20 h-1/2">
                 {/* Left Column - Content */}
-                <div className="backdrop-blur-3xl  translate-y-1/2 p-10 gap-y-8 flex flex-col items-center rounded h-full">
-                    <h1 className="text-4xl sm:text-5xl text-center lg:text-6xl font-bold text-gradient-blue-citrus-horizontal leading-tight">
-                        Welcome to FLUX - Smarter Support for the Decentralized
-                        Future
+                <div className="backdrop-blur-3xl translate-y-3/5 p-10 gap-y-4 flex flex-col items-center rounded h-full">
+                    <h1 className="flex flex-col text-4xl sm:text-5xl text-center lg:text-6xl font-bold text-gradient-blue-citrus-horizontal leading-tight">
+                        FLUX
+                        <span className="text-2xl text-citrus-400 font-semibold leading-relaxed">
+                            Bringing support to your web3 products
+                        </span>
                     </h1>
-                    <p className="text-2xl text-citrus-400 font-semibold leading-relaxed">
-                        AI agents that handle docs, transactions, refunds, and
-                        real-time customer interactions.
-                    </p>
 
                     {/* CTA Buttons */}
                     <div className="flex items-center gap-x-4">
