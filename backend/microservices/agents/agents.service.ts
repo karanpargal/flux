@@ -23,7 +23,6 @@ export const notifyThirdPartyServer = async (
             process.env.THIRD_PARTY_SERVER_URL ||
             "https://api.example.com/agents";
 
-
         const response = await fetch(thirdPartyUrl + "/company-agents", {
             method: "POST",
             headers: {
@@ -110,12 +109,32 @@ export const storeAgentInDatabase = async ({
 
 export const createAgent = async (
     org_name: MappedOrg["name"],
-    { name, description, org_id, resource_urls, file_urls, capabilities }: MappedAgent,
+    { name, description, org_id, resource_urls, capabilities }: MappedAgent,
     files?: any[],
 ) => {
     const log = logger.scoped("createAgent");
 
     try {
+        const file_urls: string[] = [];
+        if (files && files.length > 0) {
+            log.info("uploading-files-during-creation", {
+                org_id,
+                fileCount: files.length,
+            });
+
+            const uploadResults = await uploadFilesToSupabase(org_id, files);
+            uploadResults.successful.forEach(({ public_url }) =>
+                file_urls.push(public_url),
+            );
+
+            if (uploadResults.failed.length > 0) {
+                log.warn("some-files-failed-during-creation", {
+                    failedCount: uploadResults.failed.length,
+                    failedFiles: uploadResults.failed.map((f) => f.file_name),
+                });
+            }
+        }
+
         const { agent_id, address, ens_name } = await notifyThirdPartyServer(
             org_name,
             {
@@ -128,39 +147,10 @@ export const createAgent = async (
             },
         );
 
-        // If files are provided, upload them during creation
-
-        let finalFileUrls = file_urls || [];
-        if (files && files.length > 0) {
-            log.info("uploading-files-during-creation", {
-                agent_id,
-                org_id,
-                fileCount: files.length,
-            });
-
-            const uploadResults = await uploadFilesToSupabase(
-                agent_id,
-                org_id,
-                files,
-                finalFileUrls,
-            );
-            finalFileUrls = uploadResults.successful.map(
-                (result) => result.public_url,
-            );
-
-            if (uploadResults.failed.length > 0) {
-                log.warn("some-files-failed-during-creation", {
-                    agent_id,
-                    failedCount: uploadResults.failed.length,
-                    failedFiles: uploadResults.failed.map((f) => f.file_name),
-                });
-            }
-        }
-
         const data = await storeAgentInDatabase({
             capabilities,
             active: true,
-            file_urls: finalFileUrls,
+            file_urls,
             resource_urls,
             agent_id,
             name,
@@ -173,7 +163,7 @@ export const createAgent = async (
         log.info("agent-created-successfully", {
             agent_id: data.agent_id,
             name: data.name,
-            fileCount: finalFileUrls.length,
+            fileCount: file_urls.length,
         });
 
         return data;
@@ -371,19 +361,13 @@ export const updateAgentActiveStatus = async (
     }
 };
 
-export const uploadFileToSupabase = async (
-    agent_id: string,
-    org_id: string,
-    file: any,
-    currentFileUrls: string[],
-) => {
+export const uploadFileToSupabase = async (org_id: string, file: any) => {
     const log = logger.scoped("uploadFileToSupabase");
 
     try {
         const file_name = file.originalname;
-        const storage_path = `${org_id}/${agent_id}/${file_name}`;
+        const storage_path = `${org_id}/${file_name}`;
 
-        // Upload file to Supabase Storage with nested path
         const { data, error } = await SupabaseService.getSupabase()
             .storage.from("supportify")
             .upload(storage_path, file.buffer, {
@@ -394,7 +378,6 @@ export const uploadFileToSupabase = async (
 
         if (error) {
             log.error("upload-failed", {
-                agent_id,
                 org_id,
                 file_name,
                 storage_path,
@@ -403,18 +386,13 @@ export const uploadFileToSupabase = async (
             throw error;
         }
 
-        // Get public URL for the uploaded file
         const {
             data: { publicUrl },
         } = SupabaseService.getSupabase()
             .storage.from("supportify")
             .getPublicUrl(storage_path);
 
-        // Update agent's file_urls array with the new file URL
-        await updateAgentFileUrls(agent_id, publicUrl, currentFileUrls);
-
         log.info("file-uploaded-successfully", {
-            agent_id,
             org_id,
             file_name,
             storage_path,
@@ -424,7 +402,6 @@ export const uploadFileToSupabase = async (
         return publicUrl;
     } catch (error) {
         log.error("upload-file-failed", {
-            agent_id,
             org_id,
             originalName: file.originalname,
             error,
@@ -433,12 +410,7 @@ export const uploadFileToSupabase = async (
     }
 };
 
-export const uploadFilesToSupabase = async (
-    agent_id: string,
-    org_id: string,
-    files: any[],
-    currentFileUrls: string[],
-) => {
+export const uploadFilesToSupabase = async (org_id: string, files: any[]) => {
     const log = logger.scoped("uploadFilesToSupabase");
 
     const results = {
@@ -449,19 +421,11 @@ export const uploadFilesToSupabase = async (
     // Process each file individually
     for (const file of files) {
         try {
-            const public_url = await uploadFileToSupabase(
-                agent_id,
-                org_id,
-                file,
-                currentFileUrls,
-            );
+            const public_url = await uploadFileToSupabase(org_id, file);
             results.successful.push({
                 file_name: file.originalname,
                 public_url,
             });
-
-            // Update currentFileUrls for the next file
-            currentFileUrls.push(public_url);
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : "Unknown error";
@@ -471,7 +435,6 @@ export const uploadFilesToSupabase = async (
             });
 
             log.error("individual-file-upload-failed", {
-                agent_id,
                 org_id,
                 file_name: file.originalname,
                 error: errorMessage,
@@ -480,7 +443,6 @@ export const uploadFilesToSupabase = async (
     }
 
     log.info("batch-upload-completed", {
-        agent_id,
         org_id,
         totalFiles: files.length,
         successful: results.successful.length,

@@ -229,7 +229,7 @@ const handleUploadFiles = async (
         }
 
         const results = await log.time("upload-files", () =>
-            uploadFilesToSupabase(agent_id, org_id, files, currentFileUrls),
+            uploadFilesToSupabase(org_id, files),
         );
 
         return res.status(201).json({
