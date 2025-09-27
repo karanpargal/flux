@@ -148,7 +148,7 @@ export const processChatCompletion = async ({
         };
 
         // 2. Forward to third-party chat completions API (matching Python chat routes structure)
-        const thirdPartyUrl = `${process.env.THIRD_PARTY_CHAT_COMPLETIONS_URL}?agentid=${agent_id}`;
+        const thirdPartyUrl = `${process.env.THIRD_PARTY_SERVER_URL}/chat/completions?agent_id=${agent_id}`;
 
         const chatRequest = {
             messages: [
@@ -172,19 +172,35 @@ export const processChatCompletion = async ({
         });
 
         if (!response.ok) {
+            // Try to get the response body for more details about the error
+            let errorDetails = null;
+            try {
+                errorDetails = await response.text();
+            } catch (e) {
+                errorDetails = "Could not read error response body";
+            }
+            
             log.error("third-party-api-failed", {
                 status: response.status,
                 statusText: response.statusText,
                 agent_id,
+                errorDetails,
+                requestUrl: thirdPartyUrl,
+                requestBody: chatRequest,
             });
             throw new Error(
-                `Third-party API failed: ${response.status} ${response.statusText}`,
+                `Third-party API failed: ${response.status} ${response.statusText}. Details: ${errorDetails}`,
             );
         }
 
         const chatResponse = await response.json();
 
         // 3. Parse response according to chat routes structure
+        log.debug("received-chat-response", {
+            response: chatResponse,
+            agent_id,
+        });
+
         const choices = chatResponse.choices || [];
         if (choices.length === 0) {
             log.error("no-choices-in-response", {
@@ -194,13 +210,17 @@ export const processChatCompletion = async ({
             throw new Error("No choices in chat response");
         }
 
-        const assistantContent = choices[0].message?.content;
-        if (!assistantContent) {
+        const choice = choices[0];
+        const assistantContent = choice?.message?.content;
+        
+        if (!assistantContent || assistantContent.trim() === "") {
             log.error("invalid-assistant-response", {
                 response: chatResponse,
+                choice: choice,
                 agent_id,
+                assistantContent,
             });
-            throw new Error("Invalid assistant response format");
+            throw new Error("Invalid assistant response format - empty or missing content");
         }
 
         // 4. Create assistant message
@@ -210,6 +230,7 @@ export const processChatCompletion = async ({
             user_id,
             agent_id,
             org_id,
+            created_at: new Date().toISOString(),
         };
 
         // 5. Bulk insert both messages (fire and forget)

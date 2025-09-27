@@ -45,17 +45,17 @@ export const notifyThirdPartyServer = async (
             );
         }
 
-        const { agent_id, address, ens_name } = await response.json();
+        const data = await response.json();
 
         log.info("third-party-notification-success", {
-            agent_id,
+            agent_id: data.agent_id,
             status: response.status,
         });
 
         return {
-            agent_id,
-            address,
-            ens_name,
+            agent_id: data.agent_id,
+            address: data.address,
+            ens_name: data.wallet_info.ens_name,
         };
     } catch (error) {
         log.error("third-party-notification-failed", {

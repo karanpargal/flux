@@ -17,7 +17,6 @@ export const createOrg = async ({
         .from("orgs")
         .insert({
             industry,
-            wallet_address: null,
             name,
             team_size,
             email,
