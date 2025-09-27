@@ -104,6 +104,7 @@ export const createAgent = async (
 
     try {
         const agent_id = await notifyThirdPartyServer(org_name, {
+            capabilities: [],
             file_urls,
             resource_urls,
             name,
@@ -140,6 +141,7 @@ export const createAgent = async (
         }
 
         const data = await storeAgentInDatabase({
+            capabilities: [],
             active: true,
             file_urls: finalFileUrls,
             resource_urls,
@@ -566,7 +568,7 @@ export const removeResourceUrl = async (
         const agent = await getAgentById(agent_id);
 
         // Remove the resource URL from the agent's resource_urls array
-        const currentResourceUrls = agent.resource_urls || [];
+        const currentResourceUrls = agent?.resource_urls || [];
         const updatedResourceUrls = currentResourceUrls.filter(
             (url) => url !== resource_url,
         );
@@ -624,7 +626,7 @@ export const addResourceUrls = async (
         const agent = await getAgentById(agent_id);
 
         // Merge new resource URLs with existing ones, avoiding duplicates
-        const currentResourceUrls = agent.resource_urls || [];
+        const currentResourceUrls = agent?.resource_urls || [];
         const urlSet = new Set([...currentResourceUrls, ...newResourceUrls]);
         const updatedResourceUrls = Array.from(urlSet);
 

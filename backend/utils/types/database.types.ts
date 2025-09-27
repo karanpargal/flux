@@ -18,6 +18,7 @@ export type Database = {
                 Row: {
                     active: boolean;
                     agent_id: string;
+                    capabilities: Json;
                     created_at: string;
                     description: string | null;
                     file_urls: string[];
@@ -28,6 +29,7 @@ export type Database = {
                 Insert: {
                     active?: boolean;
                     agent_id?: string;
+                    capabilities?: Json;
                     created_at?: string;
                     description?: string | null;
                     file_urls?: string[];
@@ -38,6 +40,7 @@ export type Database = {
                 Update: {
                     active?: boolean;
                     agent_id?: string;
+                    capabilities?: Json;
                     created_at?: string;
                     description?: string | null;
                     file_urls?: string[];
@@ -48,6 +51,45 @@ export type Database = {
                 Relationships: [
                     {
                         foreignKeyName: "agents_org_id_fkey";
+                        columns: ["org_id"];
+                        isOneToOne: false;
+                        referencedRelation: "orgs";
+                        referencedColumns: ["org_id"];
+                    },
+                ];
+            };
+            custom_tools: {
+                Row: {
+                    agent_id: string;
+                    created_at: string;
+                    fields: Json;
+                    org_id: string;
+                    tool_id: number;
+                };
+                Insert: {
+                    agent_id: string;
+                    created_at?: string;
+                    fields?: Json;
+                    org_id: string;
+                    tool_id?: number;
+                };
+                Update: {
+                    agent_id?: string;
+                    created_at?: string;
+                    fields?: Json;
+                    org_id?: string;
+                    tool_id?: number;
+                };
+                Relationships: [
+                    {
+                        foreignKeyName: "custom_tools_agent_id_fkey";
+                        columns: ["agent_id"];
+                        isOneToOne: false;
+                        referencedRelation: "agents";
+                        referencedColumns: ["agent_id"];
+                    },
+                    {
+                        foreignKeyName: "custom_tools_org_id_fkey";
                         columns: ["org_id"];
                         isOneToOne: false;
                         referencedRelation: "orgs";

@@ -1,7 +1,6 @@
 import { agentsRouter } from "./microservices/agents/agents.routes";
 import { orgsRouter } from "./microservices/orgs/orgs.routes";
 import { LoggerService, SupabaseService } from "./services";
-import { CORS_CONFIG } from "./utils/constants";
 import cors from "cors";
 import "dotenv/config";
 import type { Express, NextFunction, Request, Response } from "express";
@@ -11,7 +10,7 @@ import { createServer } from "node:http";
 const app: Express = express();
 const server = createServer(app);
 
-app.use(cors(CORS_CONFIG()));
+app.use(cors());
 app.use(express.json());
 
 app.get("/healthcheck", (_req: Request, res: Response) => {
