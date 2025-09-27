@@ -1,0 +1,231 @@
+/* Embed Widget Styles - Standalone Chat Interface */
+.embed-standalone-container {
+    width: 100%;
+    height: 100%;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+        "Oxygen", "Ubuntu", "Cantarell", sans-serif;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Standalone Chat Interface */
+.embed-widget {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+    position: relative;
+}
+
+/* Chat Window - Now the main container */
+.embed-chat-window {
+    width: 100%;
+    height: 100%;
+    background: white;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Chat Header */
+.embed-chat-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.embed-chat-title {
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.embed-chat-close {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    font-size: 20px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: background 0.2s ease;
+    opacity: 0.8;
+}
+
+.embed-chat-close:hover {
+    background: rgba(255, 255, 255, 0.1);
+    opacity: 1;
+}
+
+/* Chat Content */
+.embed-chat-content {
+    flex: 1;
+    padding: 16px;
+    overflow-y: auto;
+    background: #f8f9fa;
+}
+
+.embed-chat-messages {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.embed-message {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.embed-message.user {
+    align-self: flex-end;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.embed-message.agent {
+    align-self: flex-start;
+    background: white;
+    color: #333;
+    border: 1px solid #e9ecef;
+}
+
+/* Chat Input */
+.embed-chat-input-container {
+    padding: 16px;
+    background: white;
+    border-top: 1px solid #e9ecef;
+    flex-shrink: 0;
+}
+
+.embed-chat-input {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+}
+
+.embed-chat-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+.embed-chat-send {
+    margin-top: 8px;
+    width: 100%;
+    padding: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: opacity 0.2s ease;
+}
+
+.embed-chat-send:hover {
+    opacity: 0.9;
+}
+
+.embed-chat-send:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Loading Animation */
+.embed-loading {
+    display: flex;
+    gap: 4px;
+    padding: 10px 14px;
+}
+
+.embed-loading-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #667eea;
+    animation: embedLoadingDot 1.4s infinite ease-in-out both;
+}
+
+.embed-loading-dot:nth-child(1) {
+    animation-delay: -0.32s;
+}
+.embed-loading-dot:nth-child(2) {
+    animation-delay: -0.16s;
+}
+
+@keyframes embedLoadingDot {
+    0%,
+    80%,
+    100% {
+        transform: scale(0);
+    }
+    40% {
+        transform: scale(1);
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 480px) {
+    .embed-chat-header {
+        padding: 12px;
+    }
+
+    .embed-chat-title {
+        font-size: 14px;
+    }
+
+    .embed-chat-content {
+        padding: 12px;
+    }
+
+    .embed-chat-input-container {
+        padding: 12px;
+    }
+
+    .embed-message {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+}
+
+/* Iframe Specific Styles */
+.embed-iframe-container {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: transparent;
+}
+
+/* Hide scrollbars in embed mode */
+.embed-standalone-container::-webkit-scrollbar {
+    display: none;
+}
+
+.embed-standalone-container {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
