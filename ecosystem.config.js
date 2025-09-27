@@ -3,7 +3,7 @@ module.exports = {
     {
       name: "agents-server",
       script: "main.py",
-      interpreter: "python3",
+      interpreter: "./venv/bin/python",
       args: "--host 0.0.0.0 --port 8000",
       instances: 1,
       autorestart: true,

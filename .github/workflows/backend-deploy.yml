@@ -25,7 +25,7 @@ jobs:
 
       - name: Create source package
         run: |
-          # Create a clean copy of the agents source code
+          # Create a clean copy of the agents source code and ecosystem config
           mkdir -p temp-source
           rsync -av --exclude=__pycache__ \
                     --exclude=*.pyc \
@@ -36,6 +36,8 @@ jobs:
                     --exclude=.env* \
                     --exclude=.pytest_cache \
                     agents/ temp-source/
+          # Copy ecosystem.config.js to temp-source
+          cp ecosystem.config.js temp-source/
           cd temp-source
           tar -czf ../source.tar.gz .
           cd ..
@@ -66,7 +68,11 @@ jobs:
             # Create .env file from GitHub secrets
             echo "${{ secrets.ENV_AGENTS }}" > .env
             
-            # Install Python dependencies
+            # Create virtual environment
+            python3 -m venv venv
+            
+            # Activate virtual environment and install dependencies
+            source venv/bin/activate
             pip install -r requirements.txt
             
             # Create logs directory
