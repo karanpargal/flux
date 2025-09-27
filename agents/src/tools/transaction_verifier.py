@@ -38,9 +38,10 @@ async def verify_transaction(
         base_url = "https://api.goldrush.dev/v1"
         headers = {"Authorization": f"Bearer {api_key}"}
         
-        # Fetch transaction from GoldRush API
-        url = f"{base_url}/{chain_name}/transaction_v2/{tx_hash}"
-        params = {"with-internal": "true"}
+        # Fetch transaction from GoldRush API using the foundational API
+        # Reference: https://goldrush.dev/docs/api-reference/foundational-api/transactions/get-a-transaction.md
+        url = f"{base_url}/{chain_name}/transaction_v2/{tx_hash}/"
+        params = {"with-internal": "true", "with-logs": "true"}
         
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers, params=params) as response:

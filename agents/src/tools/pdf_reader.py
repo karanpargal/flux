@@ -45,9 +45,12 @@ class PDFReader:
             full_text = ""
             page_texts = []
             
+            print(f"📄 Processing {len(pdf_reader.pages)} pages...")
+            
             for page_num, page in enumerate(pdf_reader.pages):
                 try:
                     page_text = page.extract_text()
+                    print(f"📄 Page {page_num + 1}: {len(page_text)} characters")
                     if page_text:
                         page_texts.append({
                             "page_number": page_num + 1,
@@ -55,7 +58,10 @@ class PDFReader:
                             "length": len(page_text)
                         })
                         full_text += page_text + "\n"
+                    else:
+                        print(f"⚠️ Page {page_num + 1}: No text extracted")
                 except Exception as e:
+                    print(f"❌ Page {page_num + 1} extraction error: {str(e)}")
                     page_texts.append({
                         "page_number": page_num + 1,
                         "text": "",
@@ -82,6 +88,7 @@ class PDFReader:
             }
             
         except Exception as e:
+            print(f"❌ PDF extraction error: {str(e)}")
             return {
                 "success": False,
                 "error": f"Failed to read PDF from bytes: {str(e)}"
@@ -135,7 +142,7 @@ class PDFReader:
             Dictionary containing extracted content and metadata
         """
         try:
-            async with httpx.AsyncClient(timeout=30.0, follow_redirects=True) as client:
+            async with httpx.AsyncClient(timeout=60.0, follow_redirects=True) as client:
                 print(f"🔗 Fetching PDF from URL: {url}")
                 response = await client.get(url)
                 response.raise_for_status()

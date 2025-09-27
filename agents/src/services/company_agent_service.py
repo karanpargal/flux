@@ -61,26 +61,44 @@ class CompanyAgentService:
             print("No PDF document URLs provided")
             return ""
         
-        print(f"Processing PDF documents from URLs: {pdf_document_urls}")
-        pdf_context = ""
-        for url in pdf_document_urls:
-            try:
-                print(f"Processing PDF from URL: {url}")
-                # Process PDF from URL
-                result = await self.pdf_service.process_pdf_from_url(url, max_length=2000)
-                if result.get("success") and result.get("content"):
-                    content = result['content']
-                    print(f"Successfully extracted {len(content)} characters from {url}")
-                    pdf_context += f"\n\nDocument Context from {url}:\n{content}..."
-                else:
-                    print(f"Failed to extract content from {url}: {result.get('error', 'Unknown error')}")
-            except Exception as e:
-                print(f"Error processing PDF from URL {url}: {e}")
-                continue
+        print(f"Processing {len(pdf_document_urls)} PDF documents from URLs")
         
-        print(f"Generated PDF context length: {len(pdf_context)} characters")
-        print(f"PDF context preview: {pdf_context[:500]}...")
-        return pdf_context
+        try:
+            # Use the improved multiple PDF processing
+            result = await self.pdf_service.process_multiple_pdfs(pdf_document_urls, max_length_per_pdf=15000)
+            
+            if result.get("success") and result.get("content"):
+                content = result['content']
+                processed_count = result.get('processed_docs_count', 0)
+                total_attempted = result.get('total_docs_attempted', len(pdf_document_urls))
+                
+                print(f"✅ Successfully processed {processed_count}/{total_attempted} PDFs")
+                print(f"📊 Total content length: {len(content)} characters")
+                print(f"📄 Total pages: {result.get('page_count', 0)}")
+                
+                # Add metadata header to the context
+                pdf_context = f"""
+=== COMPANY DOCUMENT CONTEXT ===
+Processed Documents: {processed_count}/{total_attempted}
+Total Pages: {result.get('page_count', 0)}
+Total Content Length: {len(content)} characters
+Source URLs: {', '.join(pdf_document_urls)}
+
+{content}
+=== END COMPANY DOCUMENT CONTEXT ===
+"""
+                
+                print(f"📋 Generated comprehensive PDF context: {len(pdf_context)} characters")
+                return pdf_context
+            else:
+                error_msg = result.get('error', 'Unknown error processing PDFs')
+                print(f"❌ Failed to process PDFs: {error_msg}")
+                return f"Error processing company documents: {error_msg}"
+                
+        except Exception as e:
+            print(f"❌ Error processing PDF documents: {e}")
+            return f"Error processing company documents: {str(e)}"
+    
     
     async def generate_company_agent_code(self, agent_config: CompanyAgentCreateRequest) -> str:
         """Generate the company support agent Python code with chat protocol and tools"""
@@ -94,9 +112,10 @@ class CompanyAgentService:
                 detail=f"Invalid capabilities: {validation_result['invalid_capabilities']}. Available: {validation_result['available_capabilities']}"
             )
         
-        pdf_context = ""
+        # Get context from PDF documents
+        document_context = ""
         if agent_config.pdf_document_urls:
-            pdf_context = await self.get_pdf_context(agent_config.pdf_document_urls)
+            document_context = await self.get_pdf_context(agent_config.pdf_document_urls)
         
         # Generate support agent system prompt using capability service
         support_categories = agent_config.support_categories or ["general", "technical", "billing"]
@@ -185,6 +204,9 @@ COMPANY_NAME = "{agent_config.company_name}"
 AGENT_NAME = "{agent_config.agent_name}"
 WEBHOOK_URL = "{webhook_url}"
 
+# Refund configuration
+refund_config = {agent_config.refund_config or 'None'}
+
 # Agent configuration
 class AgentConfig:
     def __init__(self):
@@ -194,17 +216,35 @@ agent_config = AgentConfig()
 
 # Initialize tools based on capabilities
 {f"pdf_reader = PDFReader()" if "document_reference" in agent_config.capabilities else ""}
-{f"webpage_reader = WebpageReader()" if "webpage_reading" in agent_config.capabilities else ""}
+# Calculator capability available by default
+
+# Initialize refund processor if refund processing capability is enabled
+{f"""
+# Initialize refund processor with company configuration
+if refund_config:
+    initialize_refund_processor(
+        company_id=refund_config.get('company_id', COMPANY_ID),
+        max_refund_amount=refund_config.get('max_refund_amount', '1000000000000000000'),
+        expected_address=refund_config.get('expected_address', ''),
+        custom_api_url=refund_config.get('custom_api_url'),
+        custom_api_headers=refund_config.get('custom_api_headers'),
+        custom_api_field=refund_config.get('custom_api_field'),
+        escalation_threshold=refund_config.get('escalation_threshold')
+    )
+    print(f"✅ Refund processor initialized for company {{COMPANY_NAME}}")
+else:
+    print("⚠️ Refund processing capability enabled but no refund configuration provided")
+""" if "refund_processing" in agent_config.capabilities else ""}
 
 # System prompt for the agent
 system_prompt = f"""{system_prompt}"""
 
-# PDF context for document reference
-pdf_context = f"""{pdf_context}"""
+# Document context for reference (PDF)
+document_context = f"""{document_context}"""
 
-# Log PDF context for debugging
-print(f"Agent PDF context length: {{len(pdf_context)}} characters")
-print(f"Agent PDF context preview: {{pdf_context[:500]}}...")
+# Log document context for debugging
+print(f"Agent document context length: {{len(document_context)}} characters")
+print(f"Agent document context preview: {{document_context[:500]}}...")
 
 # Define available tools for the support agent following ASI:One format
 def get_available_tools():
@@ -238,12 +278,11 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
         r = client.chat.completions.create(
             model="asi1-fast",
             messages=[
-                {{"role": "system", "content": system_prompt + pdf_context}},
+                {{"role": "system", "content": system_prompt + document_context}},
                 {{"role": "user", "content": text}},
             ],
             tools=get_available_tools(),
             tool_choice="auto",
-            parallel_tool_calls=True,  # Enable parallel tool execution
             max_tokens=2048,
         )
         
@@ -266,7 +305,7 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
                             "tool_call_id": tool_call.id
                         }})
                     
@@ -282,60 +321,79 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
                             "tool_call_id": tool_call.id
                         }})
                     
-                    elif function_name == "read_webpage_content":
-                        result = await read_webpage_content(
-                            function_args.get("url"),
-                            function_args.get("max_length", 10000)
+                    elif function_name == "calculate":
+                        result = await calculate(
+                            function_args.get("expression", "")
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    elif function_name == "process_refund":
+                        result = await process_refund_transaction(
+                            function_args.get("user_address"),
+                            function_args.get("transaction_hash"),
+                            function_args.get("requested_amount"),
+                            function_args.get("agent_private_key"),
+                            function_args.get("refund_chain"),
+                            function_args.get("max_refund_amount"),
+                            function_args.get("reason")
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": str(result),
                             "tool_call_id": tool_call.id
                         }})
                     
-                    elif function_name == "search_webpage_content":
-                        result = await search_webpage_content(
-                            function_args.get("url"),
-                            function_args.get("search_terms", [])
+                    elif function_name == "validate_refund_request":
+                        result = await validate_refund_transaction(
+                            function_args.get("user_address"),
+                            function_args.get("transaction_hash"),
+                            function_args.get("requested_amount"),
+                            function_args.get("refund_chain"),
+                            function_args.get("max_refund_amount")
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
                             "tool_call_id": tool_call.id
                         }})
                     else:
                         # Unknown tool
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps({{"error": f"Unknown tool: {{function_name}}"}}),
+                            "content": f"Error: Unknown tool '{{function_name}}'",
                             "tool_call_id": tool_call.id
                         }})
                         
                 except Exception as e:
                     # Handle tool execution errors
-                    error_result = {{
-                        "error": f"Tool execution failed: {{str(e)}}",
-                        "tool_name": function_name,
-                        "arguments": function_args
-                    }}
                     tool_results.append({{
                         "role": "tool",
-                        "content": json.dumps(error_result),
+                        "content": f"Error executing {{function_name}}: {{str(e)}}",
                         "tool_call_id": tool_call.id
                     }})
             
-            # Send tool results back to ASI:One for final response
+            # Send tool results back to ASI:One for final response following the exact format
             follow_up_messages = [
-                {{"role": "system", "content": system_prompt + pdf_context}},
+                {{"role": "system", "content": system_prompt + document_context}},
                 {{"role": "user", "content": text}},
                 {{
                     "role": "assistant",
                     "content": "",
-                    "tool_calls": [tool_call for tool_call in message.tool_calls]
+                    "tool_calls": [{{
+                        "id": tool_call.id,
+                        "type": "function", 
+                        "function": {{
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments
+                        }}
+                    }} for tool_call in message.tool_calls]
                 }},
                 *tool_results
             ]
@@ -459,18 +517,17 @@ async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatRespons
 async def process_company_request(message: str, sender_company_id: str) -> str:
     """Process company-specific requests using ASI:One with tool calling"""
     print(f"💬 Processing request: {{message}}")
-    print(f"📄 PDF context length: {{len(pdf_context)}} characters")
+    print(f"📄 Document context length: {{len(document_context)}} characters")
     try:
         # First request with tools and parallel execution support
         r = client.chat.completions.create(
             model="asi1-fast",
             messages=[
-                {{"role": "system", "content": system_prompt + pdf_context}},
+                {{"role": "system", "content": system_prompt + document_context}},
                 {{"role": "user", "content": message}},
             ],
             tools=get_available_tools(),
             tool_choice="auto",
-            parallel_tool_calls=True,  # Enable parallel tool execution
             max_tokens=2048,
         )
         
@@ -492,7 +549,7 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
                             "tool_call_id": tool_call.id
                         }})
                     
@@ -508,60 +565,79 @@ async def process_company_request(message: str, sender_company_id: str) -> str:
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
                             "tool_call_id": tool_call.id
                         }})
                     
-                    elif function_name == "read_webpage_content":
-                        result = await read_webpage_content(
-                            function_args.get("url"),
-                            function_args.get("max_length", 10000)
+                    elif function_name == "calculate":
+                        result = await calculate(
+                            function_args.get("expression", "")
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    elif function_name == "process_refund":
+                        result = await process_refund_transaction(
+                            function_args.get("user_address"),
+                            function_args.get("transaction_hash"),
+                            function_args.get("requested_amount"),
+                            function_args.get("agent_private_key"),
+                            function_args.get("refund_chain"),
+                            function_args.get("max_refund_amount"),
+                            function_args.get("reason")
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": result,
                             "tool_call_id": tool_call.id
                         }})
                     
-                    elif function_name == "search_webpage_content":
-                        result = await search_webpage_content(
-                            function_args.get("url"),
-                            function_args.get("search_terms", [])
+                    elif function_name == "validate_refund_request":
+                        result = await validate_refund_transaction(
+                            function_args.get("user_address"),
+                            function_args.get("transaction_hash"),
+                            function_args.get("requested_amount"),
+                            function_args.get("refund_chain"),
+                            function_args.get("max_refund_amount")
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": result,
                             "tool_call_id": tool_call.id
                         }})
                     else:
                         # Unknown tool
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps({{"error": f"Unknown tool: {{function_name}}"}}),
+                            "content": f"Error: Unknown tool '{{function_name}}'",
                             "tool_call_id": tool_call.id
                         }})
                         
                 except Exception as e:
                     # Handle tool execution errors
-                    error_result = {{
-                        "error": f"Tool execution failed: {{str(e)}}",
-                        "tool_name": function_name,
-                        "arguments": function_args
-                    }}
                     tool_results.append({{
                         "role": "tool",
-                        "content": json.dumps(error_result),
+                        "content": f"Error executing {{function_name}}: {{str(e)}}",
                         "tool_call_id": tool_call.id
                     }})
             
             # Get final response after tool execution
             follow_up_messages = [
-                {{"role": "system", "content": system_prompt + pdf_context}},
+                {{"role": "system", "content": system_prompt + document_context}},
                 {{"role": "user", "content": message}},
                 {{
                     "role": "assistant",
                     "content": "",
-                    "tool_calls": [tool_call for tool_call in message_obj.tool_calls]
+                    "tool_calls": [{{
+                        "id": tool_call.id,
+                        "type": "function", 
+                        "function": {{
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments
+                        }}
+                    }} for tool_call in message_obj.tool_calls]
                 }},
                 *tool_results
             ]
@@ -597,7 +673,6 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
             messages=all_messages,
             tools=get_available_tools(),
             tool_choice="auto",
-            parallel_tool_calls=True,  # Enable parallel tool execution
             max_tokens=2048,
         )
         
@@ -619,7 +694,7 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
                             "tool_call_id": tool_call.id
                         }})
                     
@@ -635,49 +710,61 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
                             "tool_call_id": tool_call.id
                         }})
                     
-                    elif function_name == "read_webpage_content":
-                        result = await read_webpage_content(
-                            function_args.get("url"),
-                            function_args.get("max_length", 10000)
+                    elif function_name == "calculate":
+                        result = await calculate(
+                            function_args.get("expression", "")
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    elif function_name == "process_refund":
+                        result = await process_refund_transaction(
+                            function_args.get("user_address"),
+                            function_args.get("transaction_hash"),
+                            function_args.get("requested_amount"),
+                            function_args.get("agent_private_key"),
+                            function_args.get("refund_chain"),
+                            function_args.get("max_refund_amount"),
+                            function_args.get("reason")
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": result,
                             "tool_call_id": tool_call.id
                         }})
                     
-                    elif function_name == "search_webpage_content":
-                        result = await search_webpage_content(
-                            function_args.get("url"),
-                            function_args.get("search_terms", [])
+                    elif function_name == "validate_refund_request":
+                        result = await validate_refund_transaction(
+                            function_args.get("user_address"),
+                            function_args.get("transaction_hash"),
+                            function_args.get("requested_amount"),
+                            function_args.get("refund_chain"),
+                            function_args.get("max_refund_amount")
                         )
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "content": result,
                             "tool_call_id": tool_call.id
                         }})
                     else:
                         # Unknown tool
                         tool_results.append({{
                             "role": "tool",
-                            "content": json.dumps({{"error": f"Unknown tool: {{function_name}}"}}),
+                            "content": f"Error: Unknown tool '{{function_name}}'",
                             "tool_call_id": tool_call.id
                         }})
                         
                 except Exception as e:
                     # Handle tool execution errors
-                    error_result = {{
-                        "error": f"Tool execution failed: {{str(e)}}",
-                        "tool_name": function_name,
-                        "arguments": function_args
-                    }}
                     tool_results.append({{
                         "role": "tool",
-                        "content": json.dumps(error_result),
+                        "content": f"Error executing {{function_name}}: {{str(e)}}",
                         "tool_call_id": tool_call.id
                     }})
             
@@ -686,7 +773,14 @@ async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> s
                 {{
                     "role": "assistant",
                     "content": "",
-                    "tool_calls": [tool_call for tool_call in message_obj.tool_calls]
+                    "tool_calls": [{{
+                        "id": tool_call.id,
+                        "type": "function", 
+                        "function": {{
+                            "name": tool_call.function.name,
+                            "arguments": tool_call.function.arguments
+                        }}
+                    }} for tool_call in message_obj.tool_calls]
                 }},
                 *tool_results
             ]
@@ -775,7 +869,8 @@ if __name__ == "__main__":
                 "webhook_url": agent_config.webhook_url,
                 "pdf_document_urls": agent_config.pdf_document_urls or [],
                 "support_categories": agent_config.support_categories or [],
-                "company_products": agent_config.company_products or []
+                "company_products": agent_config.company_products or [],
+                "company_address": agent_config.company_address
             }
             
             return CompanyAgentResponse(
@@ -793,7 +888,8 @@ if __name__ == "__main__":
                 webhook_url=agent_config.webhook_url,
                 pdf_document_urls=agent_config.pdf_document_urls,
                 support_categories=agent_config.support_categories,
-                company_products=agent_config.company_products
+                company_products=agent_config.company_products,
+                company_address=agent_config.company_address
             )
             
         except HTTPException:
@@ -842,7 +938,8 @@ if __name__ == "__main__":
                 webhook_url=agent_info.get("webhook_url"),
                 pdf_document_urls=agent_info.get("pdf_document_urls", []),
                 support_categories=agent_info.get("support_categories", []),
-                company_products=agent_info.get("company_products", [])
+                company_products=agent_info.get("company_products", []),
+                company_address=agent_info.get("company_address")
             ))
         
         return agents
@@ -872,7 +969,8 @@ if __name__ == "__main__":
                         webhook_url=agent_info.get("webhook_url"),
                         pdf_document_urls=agent_info.get("pdf_document_urls", []),
                         support_categories=agent_info.get("support_categories", []),
-                        company_products=agent_info.get("company_products", [])
+                        company_products=agent_info.get("company_products", []),
+                        company_address=agent_info.get("company_address")
                     ))
             
             
@@ -937,7 +1035,8 @@ if __name__ == "__main__":
             webhook_url=agent_info.get("webhook_url"),
             pdf_document_urls=agent_info.get("pdf_document_urls", []),
             support_categories=agent_info.get("support_categories", []),
-            company_products=agent_info.get("company_products", [])
+            company_products=agent_info.get("company_products", []),
+            company_address=agent_info.get("company_address")
         )
     
     async def delete_company_agent(self, agent_id: str) -> Dict[str, str]:

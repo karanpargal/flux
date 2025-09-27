@@ -1,6 +1,7 @@
 import os
 import uuid
-from typing import Dict, Any, Optional
+from datetime import datetime
+from typing import Dict, Any, Optional, List
 from fastapi import HTTPException
 from ..tools.pdf_reader import PDFReader, read_pdf_from_url
 from ..config import get_settings
@@ -68,6 +69,109 @@ class PDFService:
             raise HTTPException(
                 status_code=500, 
                 detail=f"Failed to process PDF from URL: {str(e)}"
+            )
+    
+    async def process_multiple_pdfs(self, urls: List[str], max_length_per_pdf: int = 20000) -> Dict[str, Any]:
+        """
+        Process multiple PDFs and combine their content for better context
+        
+        Args:
+            urls: List of PDF URLs to process
+            max_length_per_pdf: Maximum length per PDF
+            
+        Returns:
+            Dictionary containing combined processing results
+        """
+        try:
+            print(f"🔄 Processing {len(urls)} PDFs for combined context")
+            combined_content = ""
+            processed_docs = []
+            total_pages = 0
+            total_size = 0
+            
+            for i, url in enumerate(urls):
+                try:
+                    print(f"📄 Processing PDF {i+1}/{len(urls)}: {url}")
+                    result = await self.process_pdf_from_url(url, max_length_per_pdf)
+                    
+                    if result.get("success"):
+                        content = result.get("content", "")
+                        if content:
+                            # Add document separator and metadata
+                            doc_header = f"\n\n--- DOCUMENT {i+1}: {url} ---\n"
+                            doc_footer = f"\n--- END DOCUMENT {i+1} ---\n"
+                            combined_content += doc_header + content + doc_footer
+                            
+                            processed_docs.append({
+                                "url": url,
+                                "content_length": len(content),
+                                "page_count": result.get("page_count", 0),
+                                "file_size": result.get("file_size", 0)
+                            })
+                            
+                            total_pages += result.get("page_count", 0)
+                            total_size += result.get("file_size", 0)
+                        else:
+                            print(f"⚠️ No content extracted from {url}")
+                    else:
+                        print(f"❌ Failed to process {url}: {result.get('error', 'Unknown error')}")
+                        
+                except Exception as e:
+                    print(f"❌ Error processing {url}: {str(e)}")
+                    continue
+            
+            if not combined_content.strip():
+                return {
+                    "success": False,
+                    "error": "No content could be extracted from any of the provided PDFs",
+                    "processed_docs": processed_docs
+                }
+            
+            # Create a combined document entry
+            combined_doc_id = str(uuid.uuid4())
+            self.processed_documents[combined_doc_id] = {
+                "document_id": combined_doc_id,
+                "url": f"combined_{len(urls)}_documents",
+                "content": combined_content,
+                "metadata": {
+                    "source_urls": urls,
+                    "processed_docs": processed_docs,
+                    "total_pages": total_pages,
+                    "total_size": total_size,
+                    "processed_at": datetime.now().isoformat()
+                },
+                "page_count": total_pages,
+                "content_length": len(combined_content),
+                "file_size": total_size,
+                "processed_at": datetime.now().isoformat(),
+                "status": "processed"
+            }
+            
+            print(f"✅ Successfully processed {len(processed_docs)}/{len(urls)} PDFs")
+            print(f"📊 Combined content length: {len(combined_content)} characters")
+            
+            return {
+                "success": True,
+                "document_id": combined_doc_id,
+                "content": combined_content,
+                "metadata": {
+                    "source_urls": urls,
+                    "processed_docs": processed_docs,
+                    "total_pages": total_pages,
+                    "total_size": total_size,
+                    "processed_at": datetime.now().isoformat()
+                },
+                "page_count": total_pages,
+                "content_length": len(combined_content),
+                "file_size": total_size,
+                "processed_docs_count": len(processed_docs),
+                "total_docs_attempted": len(urls)
+            }
+            
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Failed to process multiple PDFs: {str(e)}"
             )
     
     async def get_document_content(self, document_id: str) -> Dict[str, Any]:

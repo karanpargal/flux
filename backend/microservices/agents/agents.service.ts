@@ -4,7 +4,6 @@ import { MappedAgent, MappedOrg } from "../../utils/types/mappers.types";
 
 const logger = LoggerService.scoped("agents");
 
-// Send POST request to third-party server
 export const notifyThirdPartyServer = async (
     org_name: MappedOrg["name"],
     {
@@ -16,7 +15,6 @@ export const notifyThirdPartyServer = async (
     const log = logger.scoped("notifyThirdPartyServer");
 
     try {
-        // Placeholder URL - replace with actual third-party server URL
         const thirdPartyUrl =
             process.env.THIRD_PARTY_SERVER_URL ||
             "https://api.example.com/agents";
@@ -28,9 +26,13 @@ export const notifyThirdPartyServer = async (
             },
             body: JSON.stringify({
                 description,
-                name,
-                org_id,
-                org_name,
+                agent_name: name,
+                company_id: org_id,
+                company_name: org_name,
+                capabilities: [],
+                pdf_document_urls: [],
+                support_categories: [],
+                company_products: []
             }),
         });
 

@@ -19,12 +19,15 @@ class CompanyAgentCreateRequest(BaseModel):
     agent_name: str
     port: Optional[int] = None  
     seed_phrase: Optional[str] = None
-    capabilities: List[str] = ["customer_support", "product_information", "document_reference", "transaction_verification", "technical_support", "billing_support", "general_inquiries"]
+    capabilities: List[str] = ["customer_support", "product_information", "document_reference", "transaction_verification", "technical_support", "billing_support", "general_inquiries", "refund_processing"]
     description: Optional[str] = None
     webhook_url: Optional[str] = None
     pdf_document_urls: Optional[List[str]] = None
-    support_categories: Optional[List[str]] = None  # e.g., ["billing", "technical", "general"]
-    company_products: Optional[List[str]] = None  # List of company products/services
+    support_categories: Optional[List[str]] = None  
+    company_products: Optional[List[str]] = None  
+    company_address: Optional[str] = None
+    # Refund processing configuration
+    refund_config: Optional[Dict[str, Any]] = None  
 
 
 class CapabilityInfo(BaseModel):
@@ -68,6 +71,7 @@ class CompanyAgentResponse(BaseModel):
     pdf_document_urls: Optional[List[str]] = None
     support_categories: Optional[List[str]] = None
     company_products: Optional[List[str]] = None
+    company_address: Optional[str] = None
 
 
 class AgentStatusResponse(BaseModel):
@@ -93,6 +97,7 @@ class CompanyAgentStatusResponse(BaseModel):
     process_id: Optional[int] = None
     uptime: Optional[str] = None
     capabilities: List[str] = []
+    company_address: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
@@ -263,3 +268,97 @@ class PDFDocumentsResponse(BaseModel):
     """Response model for listing PDF documents"""
     total_documents: int
     documents: List[PDFDocumentInfo]
+
+
+class RefundCriteria(BaseModel):
+    """Model for refund criteria configuration"""
+    min_transaction_amount: Optional[str] = None  # Minimum transaction amount to qualify
+    max_transaction_amount: Optional[str] = None  # Maximum transaction amount to qualify
+    required_transaction_hash: Optional[str] = None  # Specific transaction hash required
+    required_timeframe_days: Optional[int] = None  # Transaction must be within X days
+    required_chain: str  # Blockchain network (e.g., 'ethereum', 'polygon')
+    required_token_address: Optional[str] = None  # Specific token contract address
+    custom_validation_rules: Optional[Dict[str, Any]] = None  # Custom validation logic
+
+
+class RefundConfiguration(BaseModel):
+    """Model for company refund configuration"""
+    company_id: str
+    company_name: str
+    max_refund_amount: str  # Maximum refund amount in wei
+    refund_token_address: str  # Token contract address for refunds
+    refund_chain: str  # Blockchain for refunds
+    criteria: RefundCriteria
+    agent_private_key: str  # Encrypted private key for the agent
+    is_active: bool = True
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
+
+
+class RefundRequest(BaseModel):
+    """Model for refund request from user"""
+    user_address: str  # User's wallet address
+    transaction_hash: str  # Original transaction hash to verify
+    requested_amount: str  # Amount user is requesting for refund
+    reason: Optional[str] = None  # Reason for refund request
+    additional_evidence: Optional[Dict[str, Any]] = None  # Additional evidence/screenshots
+
+
+class RefundValidationResult(BaseModel):
+    """Model for refund validation result"""
+    is_valid: bool
+    validation_errors: List[str] = []
+    transaction_verified: bool = False
+    criteria_met: bool = False
+    amount_within_limits: bool = False
+    time_valid: bool = False
+    chain_valid: bool = False
+    token_valid: bool = False
+
+
+class RefundProcessResult(BaseModel):
+    """Model for refund processing result"""
+    success: bool
+    refund_tx_hash: Optional[str] = None
+    refund_amount: Optional[str] = None
+    gas_used: Optional[int] = None
+    error_message: Optional[str] = None
+    processing_time: Optional[float] = None
+
+
+class RefundConfigurationRequest(BaseModel):
+    """Request model for creating/updating refund configuration"""
+    company_id: str
+    company_name: str
+    max_refund_amount: str
+    refund_token_address: str
+    refund_chain: str
+    criteria: RefundCriteria
+    agent_private_key: str
+
+
+class RefundConfigurationResponse(BaseModel):
+    """Response model for refund configuration"""
+    configuration_id: str
+    company_id: str
+    company_name: str
+    max_refund_amount: str
+    refund_token_address: str
+    refund_chain: str
+    criteria: RefundCriteria
+    is_active: bool
+    created_at: str
+    updated_at: str
+
+
+class RefundRequestResponse(BaseModel):
+    """Response model for refund request processing"""
+    request_id: str
+    user_address: str
+    transaction_hash: str
+    requested_amount: str
+    validation_result: RefundValidationResult
+    process_result: Optional[RefundProcessResult] = None
+    status: str  # 'pending', 'validated', 'processed', 'failed'
+    created_at: str
+    processed_at: Optional[str] = None

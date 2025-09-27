@@ -5,18 +5,34 @@ from pydantic import BaseModel
 from ..services.tool_service import ToolService
 
 
-class WebpageRequest(BaseModel):
-    url: str
-    action: str = "read"  # read, search, extract_links
-    max_length: int = 10000
-    search_terms: Optional[List[str]] = None
-    filter_domain: bool = True
+class CalculationRequest(BaseModel):
+    expression: str
 
 
 class PDFRequest(BaseModel):
     url: str
     action: str = "read"  # read
     max_length: int = 50000
+
+
+class RefundRequest(BaseModel):
+    user_address: str
+    transaction_hash: str
+    requested_amount: str
+    agent_private_key: str
+    refund_chain: str
+    company_address: str
+    max_refund_amount: Optional[str] = None
+    reason: Optional[str] = None
+
+
+class RefundValidationRequest(BaseModel):
+    user_address: str
+    transaction_hash: str
+    requested_amount: str
+    refund_chain: str
+    company_address: str
+    max_refund_amount: Optional[str] = None
 
 
 router = APIRouter(prefix="/tools", tags=["tools"])
@@ -35,62 +51,27 @@ async def get_tool_capabilities(
     return await tool_service.get_tool_capabilities()
 
 
-# Webpage Reader Endpoints
+# Calculator Endpoints
 
-@router.post("/webpage/read")
-async def read_webpage(
-    request: WebpageRequest,
+@router.post("/calculator/calculate")
+async def calculate(
+    request: CalculationRequest,
     tool_service: ToolService = Depends(get_tool_service)
 ):
-    """Read content from a webpage"""
-    return await tool_service.process_webpage_request(request.dict())
+    """Perform mathematical calculations"""
+    return await tool_service.process_calculation_request(request.dict())
 
 
-@router.get("/webpage/read")
-async def read_webpage_simple(
-    url: str,
-    max_length: int = 10000,
+@router.get("/calculator/calculate")
+async def calculate_simple(
+    expression: str,
     tool_service: ToolService = Depends(get_tool_service)
 ):
-    """Read content from a webpage (simple GET endpoint)"""
+    """Perform mathematical calculations (simple GET endpoint)"""
     request_data = {
-        "url": url,
-        "action": "read",
-        "max_length": max_length
+        "expression": expression
     }
-    return await tool_service.process_webpage_request(request_data)
-
-
-@router.post("/webpage/search")
-async def search_webpage(
-    url: str,
-    search_terms: List[str],
-    max_length: int = 5000,
-    tool_service: ToolService = Depends(get_tool_service)
-):
-    """Search for specific terms within a webpage"""
-    request_data = {
-        "url": url,
-        "action": "search",
-        "search_terms": search_terms,
-        "max_length": max_length
-    }
-    return await tool_service.process_webpage_request(request_data)
-
-
-@router.post("/webpage/extract-links")
-async def extract_webpage_links(
-    url: str,
-    filter_domain: bool = True,
-    tool_service: ToolService = Depends(get_tool_service)
-):
-    """Extract all links from a webpage"""
-    request_data = {
-        "url": url,
-        "action": "extract_links",
-        "filter_domain": filter_domain
-    }
-    return await tool_service.process_webpage_request(request_data)
+    return await tool_service.process_calculation_request(request_data)
 
 
 # PDF Reader Endpoints
@@ -121,13 +102,13 @@ async def read_pdf_simple(
 
 # Agent Integration Endpoints
 
-@router.post("/agent/webpage")
-async def agent_webpage_request(
+@router.post("/agent/calculator")
+async def agent_calculation_request(
     request: Dict[str, Any],
     tool_service: ToolService = Depends(get_tool_service)
 ):
-    """Process webpage request from an agent"""
-    return await tool_service.process_webpage_request(request)
+    """Process calculation request from an agent"""
+    return await tool_service.process_calculation_request(request)
 
 
 @router.post("/agent/pdf")
@@ -137,3 +118,41 @@ async def agent_pdf_request(
 ):
     """Process PDF request from an agent"""
     return await tool_service.process_pdf_request(request)
+
+
+# Refund Processor Endpoints
+
+@router.post("/refund/process")
+async def process_refund(
+    request: RefundRequest,
+    tool_service: ToolService = Depends(get_tool_service)
+):
+    """Process a refund transaction"""
+    return await tool_service.process_refund_request(request.dict())
+
+
+@router.post("/refund/validate")
+async def validate_refund(
+    request: RefundValidationRequest,
+    tool_service: ToolService = Depends(get_tool_service)
+):
+    """Validate a refund request without processing"""
+    return await tool_service.validate_refund_request(request.dict())
+
+
+@router.post("/agent/refund")
+async def agent_refund_request(
+    request: Dict[str, Any],
+    tool_service: ToolService = Depends(get_tool_service)
+):
+    """Process refund request from an agent"""
+    return await tool_service.process_refund_request(request)
+
+
+@router.post("/agent/refund/validate")
+async def agent_refund_validation(
+    request: Dict[str, Any],
+    tool_service: ToolService = Depends(get_tool_service)
+):
+    """Validate refund request from an agent"""
+    return await tool_service.validate_refund_request(request)

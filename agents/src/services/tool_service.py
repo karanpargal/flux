@@ -1,69 +1,51 @@
 import os
 import asyncio
+import math
 from typing import Dict, Any, List, Optional
 from fastapi import HTTPException
 
-from ..tools import WebpageReader, PDFReader, read_webpage_content, search_webpage
+from ..tools import PDFReader, process_refund, validate_refund_request, verify_transaction
 
 
 class ToolService:
     """Service for managing tool operations for company agents"""
     
     def __init__(self):
-        self.webpage_reader = WebpageReader()
         self.pdf_reader = PDFReader()
     
-    async def read_webpage(self, url: str, max_length: int = 10000) -> Dict[str, Any]:
+    async def calculate(self, expression: str) -> Dict[str, Any]:
         """
-        Read content from a webpage
+        Perform mathematical calculations
         
         Args:
-            url: The URL to read
-            max_length: Maximum length of extracted text
+            expression: Mathematical expression to evaluate
             
         Returns:
-            Dictionary containing webpage content and metadata
+            Dictionary containing calculation result
         """
         try:
-            result = await self.webpage_reader.read_webpage(url, max_length)
-            return result
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to read webpage: {str(e)}")
-    
-    async def search_webpage(self, url: str, search_terms: List[str], max_length: int = 5000) -> Dict[str, Any]:
-        """
-        Search for specific terms within a webpage
-        
-        Args:
-            url: The URL to search
-            search_terms: List of terms to search for
-            max_length: Maximum length of extracted text
+            allowed_names = {
+                k: v for k, v in math.__dict__.items() if not k.startswith("__")
+            }
+            allowed_names.update({"abs": abs, "round": round, "min": min, "max": max})
             
-        Returns:
-            Dictionary containing search results
-        """
-        try:
-            result = await self.webpage_reader.search_webpage_content(url, search_terms, max_length)
-            return result
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to search webpage: {str(e)}")
-    
-    async def extract_webpage_links(self, url: str, filter_domain: bool = True) -> Dict[str, Any]:
-        """
-        Extract all links from a webpage
-        
-        Args:
-            url: The URL to extract links from
-            filter_domain: Whether to filter links to the same domain
+            if any(dangerous in expression for dangerous in ["import", "exec", "eval", "__", "open", "file"]):
+                raise ValueError("Invalid expression: contains forbidden operations")
             
-        Returns:
-            Dictionary containing extracted links
-        """
-        try:
-            result = await self.webpage_reader.extract_links(url, filter_domain)
-            return result
+            result = eval(expression, {"__builtins__": {}}, allowed_names)
+            
+            return {
+                "success": True,
+                "expression": expression,
+                "result": result,
+                "type": type(result).__name__
+            }
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to extract links: {str(e)}")
+            return {
+                "success": False,
+                "expression": expression,
+                "error": f"Calculation error: {str(e)}"
+            }
     
     async def read_pdf_from_url(self, url: str, max_length: int = 50000) -> Dict[str, Any]:
         """
@@ -82,41 +64,27 @@ class ToolService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to read PDF from URL: {str(e)}")
     
-    async def process_webpage_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def process_calculation_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Process a webpage reading request from an agent
+        Process a calculation request from an agent
         
         Args:
             request_data: Dictionary containing request parameters
             
         Returns:
-            Dictionary containing processed results
+            Dictionary containing calculation results
         """
         try:
-            url = request_data.get("url")
-            if not url:
-                raise HTTPException(status_code=400, detail="URL is required")
+            expression = request_data.get("expression")
+            if not expression:
+                raise HTTPException(status_code=400, detail="Expression is required")
             
-            action = request_data.get("action", "read")
-            max_length = request_data.get("max_length", 10000)
-            
-            if action == "read":
-                return await self.read_webpage(url, max_length)
-            elif action == "search":
-                search_terms = request_data.get("search_terms", [])
-                if not search_terms:
-                    raise HTTPException(status_code=400, detail="Search terms are required for search action")
-                return await self.search_webpage(url, search_terms, max_length)
-            elif action == "extract_links":
-                filter_domain = request_data.get("filter_domain", True)
-                return await self.extract_webpage_links(url, filter_domain)
-            else:
-                raise HTTPException(status_code=400, detail=f"Unknown action: {action}")
+            return await self.calculate(expression)
                 
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to process webpage request: {str(e)}")
+            raise HTTPException(status_code=500, detail=f"Failed to process calculation request: {str(e)}")
     
     async def process_pdf_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -146,6 +114,119 @@ class ToolService:
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Failed to process PDF request: {str(e)}")
     
+    async def process_refund_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process a refund request from an agent
+        
+        Args:
+            request_data: Dictionary containing refund request parameters
+            
+        Returns:
+            Dictionary containing refund processing results
+        """
+        try:
+            required_fields = ["user_address", "transaction_hash", "requested_amount", 
+                             "agent_private_key", "refund_chain"]
+            
+            for field in required_fields:
+                if field not in request_data:
+                    raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+            
+            company_address = request_data.get("company_address")
+            if not company_address:
+                raise HTTPException(status_code=400, detail="company_address is required for refund processing")
+            
+            result = await process_refund(
+                user_address=request_data["user_address"],
+                transaction_hash=request_data["transaction_hash"],
+                requested_amount=request_data["requested_amount"],
+                agent_private_key=request_data["agent_private_key"],
+                refund_chain=request_data["refund_chain"],
+                company_address=company_address,
+                max_refund_amount=request_data.get("max_refund_amount"),
+                reason=request_data.get("reason")
+            )
+            
+            return result
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to process refund request: {str(e)}")
+    
+    async def validate_refund_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Validate a refund request from an agent without processing
+        
+        Args:
+            request_data: Dictionary containing refund validation parameters
+            
+        Returns:
+            Dictionary containing validation results
+        """
+        try:
+            required_fields = ["user_address", "transaction_hash", "requested_amount", 
+                             "refund_chain"]
+            
+            for field in required_fields:
+                if field not in request_data:
+                    raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+            
+            company_address = request_data.get("company_address")
+            if not company_address:
+                raise HTTPException(status_code=400, detail="company_address is required for refund validation")
+            
+            result = await validate_refund_request(
+                user_address=request_data["user_address"],
+                transaction_hash=request_data["transaction_hash"],
+                requested_amount=request_data["requested_amount"],
+                refund_chain=request_data["refund_chain"],
+                company_address=company_address,
+                max_refund_amount=request_data.get("max_refund_amount")
+            )
+            
+            return result
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to validate refund request: {str(e)}")
+    
+    async def process_transaction_verification_request(self, request_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Process a transaction verification request from an agent
+        
+        Args:
+            request_data: Dictionary containing transaction verification parameters
+            
+        Returns:
+            Dictionary containing verification results
+        """
+        try:
+            required_fields = ["tx_hash", "chain_name", "from_address", "to_address", 
+                             "token_address", "amount"]
+            
+            for field in required_fields:
+                if field not in request_data:
+                    raise HTTPException(status_code=400, detail=f"Missing required field: {field}")
+            
+            result = await verify_transaction(
+                tx_hash=request_data["tx_hash"],
+                chain_name=request_data["chain_name"],
+                from_address=request_data["from_address"],
+                to_address=request_data["to_address"],
+                token_address=request_data["token_address"],
+                amount=request_data["amount"],
+                is_native=request_data.get("is_native", False)
+            )
+            
+            return result
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Failed to process transaction verification request: {str(e)}")
+
     async def get_tool_capabilities(self) -> Dict[str, Any]:
         """
         Get information about available tools and their capabilities
@@ -154,15 +235,13 @@ class ToolService:
             Dictionary containing tool capabilities
         """
         return {
-            "webpage_reader": {
-                "description": "Read and extract content from web pages",
+            "calculator": {
+                "description": "Perform mathematical calculations and evaluations",
                 "capabilities": [
-                    "read_webpage",
-                    "search_webpage_content", 
-                    "extract_links"
+                    "calculate"
                 ],
-                "supported_formats": ["html", "text"],
-                "max_content_length": 10000
+                "supported_operations": ["basic arithmetic", "trigonometry", "logarithms", "constants"],
+                "safe_evaluation": True
             },
             "pdf_reader": {
                 "description": "Read and extract content from PDF files via URL",
@@ -171,9 +250,35 @@ class ToolService:
                 ],
                 "supported_formats": ["pdf"],
                 "max_content_length": 50000
+            },
+            "transaction_verifier": {
+                "description": "Verify blockchain transactions against expected parameters",
+                "capabilities": [
+                    "verify_transaction"
+                ],
+                "supported_chains": ["eth-mainnet", "polygon-mainnet", "bsc-mainnet"],
+                "verification_features": [
+                    "transaction_status_check",
+                    "amount_verification",
+                    "address_verification",
+                    "token_verification"
+                ]
+            },
+            "refund_processor": {
+                "description": "Process blockchain refunds with validation and execution",
+                "capabilities": [
+                    "process_refund",
+                    "validate_refund_request"
+                ],
+                "supported_chains": ["ethereum", "polygon", "bsc"],
+                "security_features": [
+                    "private_key_encryption",
+                    "transaction_verification",
+                    "amount_validation"
+                ]
             }
         }
     
     async def close(self):
         """Close tool resources"""
-        await self.webpage_reader.close()
+        pass  # No resources to close for current tools
