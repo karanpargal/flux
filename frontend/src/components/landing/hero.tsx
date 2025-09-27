@@ -25,13 +25,23 @@ export const Hero: React.FC<LandingPageProps> = ({ className = "" }) => {
                         </p>
 
                         {/* CTA Buttons */}
+<div className="flex items-center gap-x-4">
 
+                        <button
+                            onClick={() => router.push("/login")}
+                            className="border-2 border-citrus-500 bg-citrus-500 hover:bg-citrus-600 text-white px-8 py-2 rounded font-medium text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:ring-offset-2"
+                        >
+                           Sign In
+                        </button>
                         <button
                             onClick={() => router.push("/signup")}
                             className="border-2 border-citrus-500/80 hover:bg-citrus-600 text-white px-8 py-2 rounded font-medium text-lg transition-colors focus:outline-none focus:ring-2 focus:ring-citrus-500 focus:ring-offset-2"
                         >
                             Get Started
                         </button>
+
+</div>
+                       
                     </div>
 
                     {/* Right Column - Sign Up Form */}

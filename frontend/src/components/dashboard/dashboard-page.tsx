@@ -41,7 +41,7 @@ const DashboardPage: React.FC<DashboardPageProps> = ({ className = "" }) => {
     };
 
     return (
-        <div className={`space-y-6 ${className}`}>
+        <div className={`space-y-6  p-8 ${className}`}>
             <div className="flex items-center justify-between">
                 <div>
                     <h2 className="text-2xl font-bold text-stone-500">

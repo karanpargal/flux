@@ -8,80 +8,94 @@ import { AgentFormProps } from "../ui/types/page-types";
 import { useCreateAgent } from "../../lib/hooks";
 import { Agent } from "@/lib/types";
 
-// Hardcoded tool definitions matching the Python backend
-const AVAILABLE_TOOLS = [
+const AVAILABLE_CAPABILITIES = [
     {
-        name: "verify_transaction",
-        displayName: "Transaction Verifier",
-        description:
-            "Verify if a blockchain transaction matches expected parameters",
+        name: "document_reference",
+        displayName: "Document Reference",
+        description: "Search and reference company documents, PDFs, and knowledge base",
+        configurable: false
+    },
+    {
+        name: "transaction_verification",
+        displayName: "Transaction Verification",
+        description: "Verify blockchain transactions and payment confirmations",
+        configurable: false
+    },
+    {
+        name: "refund_processing",
+        displayName: "Refund Processing",
+        description: "Process refunds and validate refund requests with company-specific limits",
+        configurable: true,
         parameters: [
             {
-                name: "tx_hash",
-                displayName: "Transaction Hash",
+                name: "max_refund_amount",
+                displayName: "Maximum Refund Amount (in wei)",
                 type: "string",
-                description: "The transaction hash to verify",
+                description: "Maximum refund amount allowed in wei (e.g., 1000000000000000000 for 1 ETH)",
                 required: false,
+                placeholder: "1000000000000000000"
             },
             {
-                name: "chain_name",
-                displayName: "Blockchain Name",
+                name: "refund_chain",
+                displayName: "Default Refund Chain",
+                type: "select",
+                description: "Default blockchain network for refunds",
+                required: false,
+                options: [
+                    { value: "ethereum", label: "Ethereum" },
+                    { value: "polygon", label: "Polygon" },
+                    { value: "bsc", label: "BSC" }
+                ],
+                default: "ethereum"
+            },
+            {
+                name: "agent_private_key",
+                displayName: "Agent Private Key (Encrypted)",
+                type: "password",
+                description: "Encrypted private key for the agent's wallet to process refunds",
+                required: false,
+                placeholder: "Enter encrypted private key"
+            },
+            {
+                name: "escalation_threshold",
+                displayName: "Escalation Threshold (in wei)",
                 type: "string",
-                description:
-                    "The blockchain name (e.g., 'eth-mainnet', 'polygon-mainnet')",
+                description: "Amount above which refunds require human approval",
                 required: false,
-            },
-            {
-                name: "from_address",
-                displayName: "From Address",
-                type: "string",
-                description: "The expected sender address",
-                required: false,
-            },
-            {
-                name: "to_address",
-                displayName: "To Address",
-                type: "string",
-                description:
-                    "The expected receiver address (for native) or recipient (for ERC-20)",
-                required: false,
-            },
-            {
-                name: "token_address",
-                displayName: "Token Address",
-                type: "string",
-                description:
-                    "The token contract address. Use 'native' for native blockchain token",
-                required: false,
-            },
-            {
-                name: "amount",
-                displayName: "Amount",
-                type: "string",
-                description:
-                    "The expected amount (in wei for native, token units for ERC-20)",
-                required: false,
-            },
-            {
-                name: "is_native",
-                displayName: "Is Native Token",
-                type: "boolean",
-                description:
-                    "Whether this is a native token transfer (true) or ERC-20 transfer (false)",
-                required: false,
-                default: false,
-            },
-            {
-                name: "allow_overpayment",
-                displayName: "Allow Overpayment",
-                type: "boolean",
-                description:
-                    "Whether to allow overpayment (actual amount >= expected)",
-                required: false,
-                default: false,
-            },
-        ],
+                placeholder: "500000000000000000"
+            }
+        ]
     },
+    {
+        name: "customer_support",
+        displayName: "Customer Support",
+        description: "Provide customer support and assistance",
+        configurable: false
+    },
+    {
+        name: "product_information",
+        displayName: "Product Information",
+        description: "Provide information about company products and services",
+        configurable: false
+    },
+    {
+        name: "technical_support",
+        displayName: "Technical Support",
+        description: "Provide technical support and troubleshooting",
+        configurable: false
+    },
+    {
+        name: "billing_support",
+        displayName: "Billing Support",
+        description: "Handle billing inquiries and payment questions",
+        configurable: false
+    },
+    {
+        name: "general_inquiries",
+        displayName: "General Inquiries",
+        description: "Handle general questions and inquiries",
+        configurable: false
+    }
 ];
 
 const validationSchema = Yup.object({
@@ -130,8 +144,8 @@ const AgentForm: React.FC<AgentFormProps> = ({
     const [dragActive, setDragActive] = useState<boolean>(false);
 
     // Capabilities state
-    const [enabledTools, setEnabledTools] = useState<Set<string>>(new Set());
-    const [toolConfigs, setToolConfigs] = useState<
+    const [enabledCapabilities, setEnabledCapabilities] = useState<Set<string>>(new Set());
+    const [capabilityConfigs, setCapabilityConfigs] = useState<
         Record<string, Record<string, unknown>>
     >({});
 
@@ -176,6 +190,12 @@ const AgentForm: React.FC<AgentFormProps> = ({
                 "file_urls",
                 newFiles.map((f) => f.name)
             );
+            
+            if (newFiles.length > 0 && !enabledCapabilities.has("document_reference")) {
+                const newEnabledCapabilities = new Set(enabledCapabilities);
+                newEnabledCapabilities.add("document_reference");
+                setEnabledCapabilities(newEnabledCapabilities);
+            }
         },
         [uploadedFiles, setValue]
     );
@@ -187,6 +207,15 @@ const AgentForm: React.FC<AgentFormProps> = ({
             "file_urls",
             newFiles.map((f) => f.name)
         );
+        
+        if (newFiles.length === 0 && enabledCapabilities.has("document_reference")) {
+            const newEnabledCapabilities = new Set(enabledCapabilities);
+            newEnabledCapabilities.delete("document_reference");
+            setEnabledCapabilities(newEnabledCapabilities);
+            const newCapabilityConfigs = { ...capabilityConfigs };
+            delete newCapabilityConfigs["document_reference"];
+            setCapabilityConfigs(newCapabilityConfigs);
+        }
     };
 
     // Drag and drop handlers
@@ -214,29 +243,29 @@ const AgentForm: React.FC<AgentFormProps> = ({
     );
 
     // Capabilities handlers
-    const toggleTool = (toolName: string) => {
-        const newEnabledTools = new Set(enabledTools);
-        if (newEnabledTools.has(toolName)) {
-            newEnabledTools.delete(toolName);
-            // Remove tool config when disabled
-            const newToolConfigs = { ...toolConfigs };
-            delete newToolConfigs[toolName];
-            setToolConfigs(newToolConfigs);
+    const toggleCapability = (capabilityName: string) => {
+        const newEnabledCapabilities = new Set(enabledCapabilities);
+        if (newEnabledCapabilities.has(capabilityName)) {
+            newEnabledCapabilities.delete(capabilityName);
+            // Remove capability config when disabled
+            const newCapabilityConfigs = { ...capabilityConfigs };
+            delete newCapabilityConfigs[capabilityName];
+            setCapabilityConfigs(newCapabilityConfigs);
         } else {
-            newEnabledTools.add(toolName);
+            newEnabledCapabilities.add(capabilityName);
         }
-        setEnabledTools(newEnabledTools);
+        setEnabledCapabilities(newEnabledCapabilities);
     };
 
-    const updateToolConfig = (
-        toolName: string,
+    const updateCapabilityConfig = (
+        capabilityName: string,
         paramName: string,
         value: unknown
     ) => {
-        setToolConfigs((prev) => ({
+        setCapabilityConfigs((prev) => ({
             ...prev,
-            [toolName]: {
-                ...prev[toolName],
+            [capabilityName]: {
+                ...prev[capabilityName],
                 [paramName]: value,
             },
         }));
@@ -259,15 +288,16 @@ const AgentForm: React.FC<AgentFormProps> = ({
                 resource_urls: resourceUrls,
                 file_urls: uploadedFiles.map((f) => f.name),
                 active: (values.active as boolean) ?? true,
-                capabilities: toolConfigs, // Use configured tool parameters
+                capabilities: Object.fromEntries(Array.from(enabledCapabilities).map(capability => [capability, true])), // Send enabled capabilities as array
             };
+
 
             const newAgent = await createAgent.execute(processedValues);
             onSubmit(values as unknown as Agent);
             reset();
             setUploadedFiles([]); // Clear uploaded files
-            setEnabledTools(new Set()); // Clear capabilities
-            setToolConfigs({}); // Clear tool configs
+            setEnabledCapabilities(new Set()); // Clear capabilities
+            setCapabilityConfigs({}); // Clear capability configs
             if (onSuccess) {
                 onSuccess(newAgent);
             }
@@ -537,66 +567,65 @@ const AgentForm: React.FC<AgentFormProps> = ({
                     </p>
 
                     <div className="space-y-4">
-                        {AVAILABLE_TOOLS.map((tool) => (
+                        {AVAILABLE_CAPABILITIES.map((capability) => (
                             <div
-                                key={tool.name}
+                                key={capability.name}
                                 className="border border-stone-200 rounded-lg p-4"
                             >
                                 <div className="flex items-start space-x-3">
                                     <input
                                         type="checkbox"
-                                        id={`tool-${tool.name}`}
-                                        checked={enabledTools.has(tool.name)}
-                                        onChange={() => toggleTool(tool.name)}
-                                        className="mt-1 h-4 w-4 text-citrus-600 focus:ring-citrus-500 border-stone-300 rounded"
+                                        id={`capability-${capability.name}`}
+                                        checked={enabledCapabilities.has(capability.name)}
+                                        onChange={() => toggleCapability(capability.name)}
+                                        disabled={capability.name === "document_reference" && uploadedFiles.length > 0}
+                                        className="mt-1 h-4 w-4 text-citrus-600 focus:ring-citrus-500 border-stone-300 rounded disabled:opacity-50"
                                     />
                                     <div className="flex-1">
                                         <label
-                                            htmlFor={`tool-${tool.name}`}
+                                            htmlFor={`capability-${capability.name}`}
                                             className="text-sm font-medium text-stone-700 cursor-pointer"
                                         >
-                                            {tool.displayName}
+                                            {capability.displayName}
+                                            {capability.name === "document_reference" && uploadedFiles.length > 0 && (
+                                                <span className="ml-2 text-xs text-citrus-600 bg-citrus-50 px-2 py-1 rounded">
+                                                    Auto-enabled (files uploaded)
+                                                </span>
+                                            )}
                                         </label>
                                         <p className="text-xs text-stone-500 mt-1">
-                                            {tool.description}
+                                            {capability.description}
                                         </p>
 
-                                        {/* Tool Configuration */}
-                                        {enabledTools.has(tool.name) && (
+                                        {/* Capability Configuration - Only for refund processing */}
+                                        {enabledCapabilities.has(capability.name) && capability.configurable && capability.parameters && (
                                             <div className="mt-4 space-y-3">
                                                 <p className="text-xs font-medium text-stone-600">
-                                                    Configure Parameters
-                                                    (optional):
+                                                    Configure {capability.displayName} Parameters:
                                                 </p>
-                                                {tool.parameters.map(
+                                                {capability.parameters.map(
                                                     (param) => (
                                                         <div
                                                             key={param.name}
                                                             className="space-y-1"
                                                         >
                                                             <label className="text-xs font-medium text-stone-500">
-                                                                {
-                                                                    param.displayName
-                                                                }
+                                                                {param.displayName}
+                                                                {param.required && <span className="text-red-500 ml-1">*</span>}
                                                             </label>
                                                             <p className="text-xs text-stone-400">
-                                                                {
-                                                                    param.description
-                                                                }
+                                                                {param.description}
                                                             </p>
 
-                                                            {param.type ===
-                                                            "boolean" ? (
+                                                            {param.type === "boolean" ? (
                                                                 <div className="flex items-center space-x-2">
                                                                     <input
                                                                         type="checkbox"
                                                                         checked={
-                                                                            (toolConfigs[
-                                                                                tool
-                                                                                    .name
+                                                                            (capabilityConfigs[
+                                                                                capability.name
                                                                             ]?.[
-                                                                                param
-                                                                                    .name
+                                                                                param.name
                                                                             ] ??
                                                                                 param.default ??
                                                                                 false) as boolean
@@ -604,23 +633,19 @@ const AgentForm: React.FC<AgentFormProps> = ({
                                                                         onChange={(
                                                                             e
                                                                         ) =>
-                                                                            updateToolConfig(
-                                                                                tool.name,
+                                                                            updateCapabilityConfig(
+                                                                                capability.name,
                                                                                 param.name,
-                                                                                e
-                                                                                    .target
-                                                                                    .checked
+                                                                                e.target.checked
                                                                             )
                                                                         }
                                                                         className="h-3 w-3 text-citrus-600 focus:ring-citrus-500 border-stone-300 rounded"
                                                                     />
                                                                     <span className="text-xs text-stone-600">
-                                                                        {toolConfigs[
-                                                                            tool
-                                                                                .name
+                                                                        {capabilityConfigs[
+                                                                            capability.name
                                                                         ]?.[
-                                                                            param
-                                                                                .name
+                                                                            param.name
                                                                         ] ??
                                                                         param.default ??
                                                                         false
@@ -628,35 +653,79 @@ const AgentForm: React.FC<AgentFormProps> = ({
                                                                             : "No"}
                                                                     </span>
                                                                 </div>
-                                                            ) : (
-                                                                <input
-                                                                    type="text"
+                                                            ) : param.type === "select" ? (
+                                                                <select
                                                                     value={
-                                                                        (toolConfigs[
-                                                                            tool
-                                                                                .name
+                                                                        (capabilityConfigs[
+                                                                            capability.name
                                                                         ]?.[
-                                                                            param
-                                                                                .name
+                                                                            param.name
+                                                                        ] as string) ??
+                                                                        param.default ??
+                                                                        ""
+                                                                    }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        updateCapabilityConfig(
+                                                                            capability.name,
+                                                                            param.name,
+                                                                            e.target.value
+                                                                        )
+                                                                    }
+                                                                    className="w-full px-2 py-1 text-xs border border-stone-300 rounded focus:outline-none focus:ring-1 focus:ring-citrus-500 focus:border-citrus-500"
+                                                                >
+                                                                    <option value="">Select {param.displayName}</option>
+                                                                    {param.options?.map((option) => (
+                                                                        <option key={option.value} value={option.value}>
+                                                                            {option.label}
+                                                                        </option>
+                                                                    ))}
+                                                                </select>
+                                                            ) : param.type === "password" ? (
+                                                                <input
+                                                                    type="password"
+                                                                    value={
+                                                                        (capabilityConfigs[
+                                                                            capability.name
+                                                                        ]?.[
+                                                                            param.name
                                                                         ] as string) ??
                                                                         ""
                                                                     }
                                                                     onChange={(
                                                                         e
                                                                     ) =>
-                                                                        updateToolConfig(
-                                                                            tool.name,
+                                                                        updateCapabilityConfig(
+                                                                            capability.name,
                                                                             param.name,
-                                                                            e
-                                                                                .target
-                                                                                .value
+                                                                            e.target.value
                                                                         )
                                                                     }
-                                                                    placeholder={
-                                                                        param.default
-                                                                            ? `Default: ${param.default}`
-                                                                            : "Leave empty to use default"
+                                                                    placeholder={param.placeholder || ""}
+                                                                    className="w-full px-2 py-1 text-xs border border-stone-300 rounded focus:outline-none focus:ring-1 focus:ring-citrus-500 focus:border-citrus-500"
+                                                                />
+                                                            ) : (
+                                                                <input
+                                                                    type="text"
+                                                                    value={
+                                                                        (capabilityConfigs[
+                                                                            capability.name
+                                                                        ]?.[
+                                                                            param.name
+                                                                        ] as string) ??
+                                                                        ""
                                                                     }
+                                                                    onChange={(
+                                                                        e
+                                                                    ) =>
+                                                                        updateCapabilityConfig(
+                                                                            capability.name,
+                                                                            param.name,
+                                                                            e.target.value
+                                                                        )
+                                                                    }
+                                                                    placeholder={param.placeholder || "Leave empty to use default"}
                                                                     className="w-full px-2 py-1 text-xs border border-stone-300 rounded focus:outline-none focus:ring-1 focus:ring-citrus-500 focus:border-citrus-500"
                                                                 />
                                                             )}
@@ -695,8 +764,8 @@ const AgentForm: React.FC<AgentFormProps> = ({
                         onClick={() => {
                             reset();
                             setUploadedFiles([]);
-                            setEnabledTools(new Set());
-                            setToolConfigs({});
+                            setEnabledCapabilities(new Set());
+                            setCapabilityConfigs({});
                             createAgent.reset();
                         }}
                         className="px-4 py-2 border border-stone-300 text-stone-500 rounded-md hover:bg-stone-50 transition-colors focus:outline-none focus:ring-2 focus:ring-stone-500 focus:ring-offset-2"

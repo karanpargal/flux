@@ -16,17 +16,21 @@ export default function LoginPage() {
     };
 
     return (
-        <section className="grid grid-cols-1 lg:grid-cols-2">
-            <div className="flex flex-col">
-                <h1>Login</h1>
-                <p>
-                    Welcome back! Sign in to your organization account to
-                    continue.
-                </p>
-            </div>
-            <div className="flex justify-center lg:justify-end">
-                <div className="w-full max-w-md">
-                    <LoginForm onSubmit={handleLogin} />
+        <section className="flex items-center justify-center min-h-screen p-8">
+            <div className="glass-effect-citrus rounded-3xl p-8 w-full max-w-6xl">
+                <div className="grid grid-cols-1 items-start lg:grid-cols-2 gap-8">
+                    <div className="flex flex-col gap-y-10">
+                        <h1 className="text-5xl font-bold text-gradient-blue-citrus-vertical">
+                            Welcome Back
+                        </h1>
+                        <p className="text-2xl text-stone-500 leading-relaxed">
+                            Sign in to your organization account to continue
+                            building amazing AI-powered support experiences.
+                        </p>
+                    </div>
+                    <div className="w-full">
+                        <LoginForm onSubmit={handleLogin} />
+                    </div>
                 </div>
             </div>
         </section>
