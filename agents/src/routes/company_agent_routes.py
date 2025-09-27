@@ -9,14 +9,10 @@ from ..models.agent_models import (
     AgentMessageRequest,
     AgentMessageResponse
 )
+from ..services import get_company_agent_service
 from ..services.company_agent_service import CompanyAgentService
 
 router = APIRouter(prefix="/company-agents", tags=["company-agents"])
-
-
-def get_company_agent_service() -> CompanyAgentService:
-    """Dependency to get company agent service instance"""
-    return CompanyAgentService()
 
 
 @router.post("", response_model=CompanyAgentResponse)

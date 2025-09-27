@@ -2,14 +2,10 @@ from fastapi import APIRouter, Depends
 from typing import Dict, Any
 
 from ..models.agent_models import CompanyHealthResponse
+from ..services import get_company_agent_service
 from ..services.company_agent_service import CompanyAgentService
 
 router = APIRouter(tags=["health"])
-
-
-def get_company_agent_service() -> CompanyAgentService:
-    """Dependency to get company agent service instance"""
-    return CompanyAgentService()
 
 
 @router.get("/health", response_model=CompanyHealthResponse)

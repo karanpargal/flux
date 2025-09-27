@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 
@@ -14,11 +14,9 @@ class WebpageRequest(BaseModel):
 
 
 class PDFRequest(BaseModel):
-    file_path: str
-    action: str = "read"  # read, search, extract_pages
+    url: str
+    action: str = "read"  # read
     max_length: int = 50000
-    search_terms: Optional[List[str]] = None
-    page_numbers: Optional[List[int]] = None
 
 
 router = APIRouter(prefix="/tools", tags=["tools"])
@@ -102,48 +100,21 @@ async def read_pdf(
     request: PDFRequest,
     tool_service: ToolService = Depends(get_tool_service)
 ):
-    """Read content from a PDF file"""
+    """Read content from a PDF URL"""
     return await tool_service.process_pdf_request(request.dict())
 
 
-@router.post("/pdf/upload")
-async def read_pdf_upload(
-    file: UploadFile = File(...),
+@router.get("/pdf/read")
+async def read_pdf_simple(
+    url: str,
     max_length: int = 50000,
     tool_service: ToolService = Depends(get_tool_service)
 ):
-    """Read content from an uploaded PDF file"""
-    return await tool_service.read_pdf_from_upload(file, max_length)
-
-
-@router.post("/pdf/search")
-async def search_pdf(
-    file_path: str,
-    search_terms: List[str],
-    max_length: int = 10000,
-    tool_service: ToolService = Depends(get_tool_service)
-):
-    """Search for specific terms within a PDF"""
+    """Read content from a PDF URL (simple GET endpoint)"""
     request_data = {
-        "file_path": file_path,
-        "action": "search",
-        "search_terms": search_terms,
+        "url": url,
+        "action": "read",
         "max_length": max_length
-    }
-    return await tool_service.process_pdf_request(request_data)
-
-
-@router.post("/pdf/extract-pages")
-async def extract_pdf_pages(
-    file_path: str,
-    page_numbers: Optional[List[int]] = None,
-    tool_service: ToolService = Depends(get_tool_service)
-):
-    """Extract specific pages from a PDF"""
-    request_data = {
-        "file_path": file_path,
-        "action": "extract_pages",
-        "page_numbers": page_numbers
     }
     return await tool_service.process_pdf_request(request_data)
 

@@ -9,14 +9,12 @@ from ..models.agent_models import (
     ChatMessage,
     CompanyAgentResponse
 )
+from ..services import get_company_agent_service
 from ..services.company_agent_service import CompanyAgentService
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
-def get_company_agent_service() -> CompanyAgentService:
-    """Dependency to get company agent service instance"""
-    return CompanyAgentService()
 
 
 @router.post("/completions", response_model=ChatResponse)

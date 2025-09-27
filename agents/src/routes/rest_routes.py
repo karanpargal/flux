@@ -14,12 +14,11 @@ from ..models.agent_models import (
     ChatChoice,
     ChatUsage
 )
+from ..services import get_company_agent_service
 from ..services.company_agent_service import CompanyAgentService
 
 router = APIRouter(prefix="/api/rest", tags=["REST API"])
 
-def get_company_agent_service() -> CompanyAgentService:
-    return CompanyAgentService()
 
 @router.get("/agents/{agent_id}/get", response_model=RestResponse)
 async def get_agent_info(

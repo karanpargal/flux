@@ -17,7 +17,10 @@ from ..models.agent_models import (
     MailboxMessage
 )
 from .process_service import ProcessService
+from .pdf_service import PDFService
 from ..config import get_settings
+from ..tools.pdf_reader import PDFReader
+from ..tools.transaction_verifier import verify_transaction, get_transaction_verification_schema
 
 
 class CompanyAgentService:
@@ -26,6 +29,7 @@ class CompanyAgentService:
     def __init__(self):
         self.company_agents_registry: Dict[str, Dict[str, Any]] = {}
         self.process_service = ProcessService()
+        self.pdf_service = PDFService()
         self.settings = get_settings()
         self.client = httpx.AsyncClient(timeout=30.0)
         self.port_mapping: Dict[str, int] = {}
@@ -33,13 +37,83 @@ class CompanyAgentService:
     
     def get_next_available_port(self) -> int:
         """Get the next available port starting from 8001"""
-        port = self.next_port
-        self.next_port += 1
-        return port
+        import socket
+        
+        for port in range(self.next_port, self.next_port + 100):  # Try up to 100 ports
+            try:
+                # Try to bind to the port to check if it's available
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                    s.bind(('localhost', port))
+                    self.next_port = port + 1
+                    return port
+            except OSError:
+                # Port is in use, try next one
+                continue
+        
+        # If no port found, raise an error
+        raise HTTPException(status_code=500, detail="No available ports found")
     
-    def generate_company_agent_code(self, agent_config: CompanyAgentCreateRequest) -> str:
-        """Generate the company agent Python code with chat protocol"""
+    async def get_pdf_context(self, pdf_document_urls: List[str]) -> str:
+        """Get PDF context from document URLs by processing them"""
+        if not pdf_document_urls:
+            print("No PDF document URLs provided")
+            return ""
+        
+        print(f"Processing PDF documents from URLs: {pdf_document_urls}")
+        pdf_context = ""
+        for url in pdf_document_urls:
+            try:
+                print(f"Processing PDF from URL: {url}")
+                # Process PDF from URL
+                result = await self.pdf_service.process_pdf_from_url(url, max_length=2000)
+                if result.get("success") and result.get("content"):
+                    content = result['content']
+                    print(f"Successfully extracted {len(content)} characters from {url}")
+                    pdf_context += f"\n\nDocument Context from {url}:\n{content}..."
+                else:
+                    print(f"Failed to extract content from {url}: {result.get('error', 'Unknown error')}")
+            except Exception as e:
+                print(f"Error processing PDF from URL {url}: {e}")
+                continue
+        
+        print(f"Generated PDF context length: {len(pdf_context)} characters")
+        print(f"PDF context preview: {pdf_context[:500]}...")
+        return pdf_context
+    
+    async def generate_company_agent_code(self, agent_config: CompanyAgentCreateRequest) -> str:
+        """Generate the company support agent Python code with chat protocol and tools"""
         webhook_url = agent_config.webhook_url or f"http://localhost:{agent_config.port}/webhook"
+        
+        pdf_context = ""
+        if agent_config.pdf_document_urls:
+            pdf_context = await self.get_pdf_context(agent_config.pdf_document_urls)
+        
+        # Generate support agent system prompt
+        support_categories = agent_config.support_categories or ["general", "technical", "billing"]
+        company_products = agent_config.company_products or ["products and services"]
+        
+        system_prompt = f"""You are a helpful AI support agent for {agent_config.company_name}. 
+
+Your role is to assist customers with:
+- Product information and how our services work
+- Technical support and troubleshooting
+- Billing and payment questions
+- General inquiries about {agent_config.company_name}
+
+You have access to the following tools:
+- PDF Document Reference: You can search through company documents to find specific information
+- Transaction Verification: You can verify blockchain transactions and payments
+
+Company Products/Services: {', '.join(company_products)}
+Support Categories: {', '.join(support_categories)}
+
+CRITICAL INSTRUCTIONS:
+1. When users ask ANY question about {agent_config.company_name}, employees, skills, experience, projects, or company information, you MUST ALWAYS call the search_company_documents tool FIRST before responding.
+2. Use search terms like: "work experience", "programming languages", "technologies", "education", "projects", "skills", "achievements"
+3. Do NOT ask for permission - automatically search the documents and provide the information you find.
+4. If you find relevant information, share it with the user. If you don't find anything, then explain what you searched for.
+
+Always be helpful, professional, and accurate. Use the document search tool automatically when users ask about company information."""
         
         code = f'''from datetime import datetime
 from uuid import uuid4
@@ -47,6 +121,7 @@ import os
 import json
 import httpx
 import time
+import asyncio
 from typing import Dict, Any, List
 from dotenv import load_dotenv
 from openai import OpenAI
@@ -58,6 +133,13 @@ from uagents_core.contrib.protocols.chat import (
     TextContent,
     chat_protocol_spec,
 )
+
+# Import tools for company support agent
+import sys
+import os
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
+from tools.pdf_reader import PDFReader
+from tools.transaction_verifier import verify_transaction, get_transaction_verification_schema
 
 load_dotenv()
 client = OpenAI(
@@ -107,6 +189,175 @@ class AgentConfig:
 
 agent_config = AgentConfig()
 
+# Initialize tools
+pdf_reader = PDFReader()
+
+# System prompt for the agent
+system_prompt = f"""You are a helpful AI support agent for {agent_config.company_name}. 
+
+Your role is to assist customers with:
+- Product information and how our services work
+- Technical support and troubleshooting
+- Billing and payment questions
+- General inquiries about {agent_config.company_name}
+
+You have access to the following tools:
+- PDF Document Reference: You can search through company documents to find specific information
+- Transaction Verification: You can verify blockchain transactions and payments
+
+Company Products/Services: {', '.join(company_products)}
+Support Categories: {', '.join(support_categories)}
+
+Always be helpful, professional, and accurate. If you need to reference company documents or verify transactions, use the appropriate tools."""
+
+# PDF context for document reference
+pdf_context = f"""{pdf_context}"""
+
+# Log PDF context for debugging
+print(f"Agent PDF context length: {{len(pdf_context)}} characters")
+print(f"Agent PDF context preview: {{pdf_context[:500]}}...")
+
+# Define available tools for the support agent following ASI:One format
+def get_available_tools():
+    return [
+        {{
+            "type": "function",
+            "function": {{
+                "name": "search_company_documents",
+                "description": "Search through company PDF documents for specific information about products, policies, or procedures",
+                "parameters": {{
+                    "type": "object",
+                    "properties": {{
+                        "search_terms": {{
+                            "type": "array",
+                            "items": {{"type": "string"}},
+                            "description": "List of terms to search for in company documents"
+                        }},
+                        "document_urls": {{
+                            "type": "array", 
+                            "items": {{"type": "string"}},
+                            "description": "Specific document URLs to search in (optional)"
+                        }}
+                    }},
+                    "required": ["search_terms"],
+                    "additionalProperties": False
+                }},
+                "strict": True
+            }}
+        }},
+        {{
+            "type": "function",
+            "function": {{
+                "name": "verify_transaction",
+                "description": "Verify if a blockchain transaction matches the expected parameters for payment verification",
+                "parameters": {{
+                    "type": "object",
+                    "properties": {{
+                        "tx_hash": {{
+                            "type": "string",
+                            "description": "The transaction hash to verify"
+                        }},
+                        "chain_name": {{
+                            "type": "string",
+                            "description": "The blockchain name (e.g., 'eth-mainnet', 'polygon-mainnet')"
+                        }},
+                        "from_address": {{
+                            "type": "string",
+                            "description": "The expected sender address"
+                        }},
+                        "to_address": {{
+                            "type": "string", 
+                            "description": "The expected receiver address (for native) or recipient (for ERC-20)"
+                        }},
+                        "token_address": {{
+                            "type": "string",
+                            "description": "The token contract address. Use 'native' for native blockchain token"
+                        }},
+                        "amount": {{
+                            "type": "string",
+                            "description": "The expected amount (in wei for native, token units for ERC-20)"
+                        }},
+                        "is_native": {{
+                            "type": "boolean",
+                            "description": "Whether this is a native token transfer (true) or ERC-20 transfer (false)",
+                            "default": False
+                        }}
+                    }},
+                    "required": ["tx_hash", "chain_name", "from_address", "to_address", "token_address", "amount", "is_native"],
+                    "additionalProperties": False
+                }},
+                "strict": True
+            }}
+        }}
+    ]
+
+async def search_company_documents(search_terms: List[str], document_urls: List[str] = None) -> str:
+    """Search through company documents for information"""
+    print(f"🔍 search_company_documents called with terms: {{search_terms}}, urls: {{document_urls}}")
+    try:
+        # Initialize PDF reader
+        pdf_reader = PDFReader()
+        
+        # If specific document URLs provided, search only those
+        if document_urls:
+            search_results = []
+            for url in document_urls:
+                try:
+                    # Process PDF from URL
+                    result = await pdf_reader.read_pdf_from_url(url, max_length=10000)
+                    if result.get("success") and result.get("content"):
+                        content = result.get("content", "").lower()
+                        
+                        # Search for terms in the document
+                        found_terms = []
+                        for term in search_terms:
+                            if term.lower() in content:
+                                found_terms.append(term)
+                        
+                        if found_terms:
+                            search_results.append(f"Document {{url}}: Found terms: {{', '.join(found_terms)}}")
+                except Exception as e:
+                    search_results.append(f"Error processing {{url}}: {{str(e)}}")
+        else:
+            # Default document URLs for this company
+            default_urls = {agent_config.pdf_document_urls or []}
+            search_results = []
+            
+            for url in default_urls:
+                try:
+                    result = await pdf_reader.read_pdf_from_url(url, max_length=10000)
+                    if result.get("success") and result.get("content"):
+                        content = result.get("content", "").lower()
+                        found_terms = []
+                        for term in search_terms:
+                            if term.lower() in content:
+                                found_terms.append(term)
+                        
+                        if found_terms:
+                            search_results.append(f"Document {{url}}: Found terms: {{', '.join(found_terms)}}")
+                except Exception as e:
+                    search_results.append(f"Error processing {{url}}: {{str(e)}}")
+        
+        if search_results:
+            return f"Found relevant information in company documents:\\n" + "\\n".join(search_results)
+        else:
+            return f"No relevant information found for terms: {{', '.join(search_terms)}}"
+            
+    except Exception as e:
+        return f"Error searching documents: {{str(e)}}"
+
+async def verify_payment_transaction(tx_hash: str, chain_name: str, from_address: str, to_address: str, token_address: str, amount: str, is_native: bool = False) -> str:
+    """Verify a blockchain payment transaction"""
+    try:
+        result = await verify_transaction(tx_hash, chain_name, from_address, to_address, token_address, amount, is_native)
+        if result.get("verified"):
+            return f"✅ Transaction verified successfully! All parameters match."
+        else:
+            mismatches = result.get("mismatches", [])
+            return f"❌ Transaction verification failed. Mismatches: {{json.dumps(mismatches, indent=2)}}"
+    except Exception as e:
+        return f"Error verifying transaction: {{str(e)}}"
+
 agent = Agent(
     name="{agent_config.agent_name}",
     seed=SEED_PHRASE,
@@ -129,17 +380,103 @@ async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
 
     response = "Sorry, I wasn't able to process that."
     try:
+        # Use ASI:One tool calling format with parallel tool calling support
         r = client.chat.completions.create(
             model="asi1-mini",
             messages=[
-                {{"role": "system", "content": f"You are a helpful AI assistant for {{COMPANY_NAME}}. You handle {{', '.join(agent_config.capabilities)}} requests. Answer user queries clearly and politely."}},
+                {{"role": "system", "content": system_prompt + pdf_context}},
                 {{"role": "user", "content": text}},
             ],
+            tools=get_available_tools(),
+            tool_choice="auto",
+            parallel_tool_calls=True,  # Enable parallel tool execution
             max_tokens=2048,
         )
-        response = str(r.choices[0].message.content)
-    except:
+        
+        message = r.choices[0].message
+        
+        # Check if the model wants to call a function (ASI:One format)
+        if hasattr(message, 'tool_calls') and message.tool_calls:
+            # Process tool calls following ASI:One format
+            tool_results = []
+            for tool_call in message.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+                
+                # Execute the appropriate tool with error handling
+                try:
+                    if function_name == "search_company_documents":
+                        result = await search_company_documents(
+                            function_args.get("search_terms", []),
+                            function_args.get("document_urls", [])
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    
+                    elif function_name == "verify_transaction":
+                        result = await verify_payment_transaction(
+                            function_args.get("tx_hash"),
+                            function_args.get("chain_name"), 
+                            function_args.get("from_address"),
+                            function_args.get("to_address"),
+                            function_args.get("token_address"),
+                            function_args.get("amount"),
+                            function_args.get("is_native", False)
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    else:
+                        # Unknown tool
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps({{"error": f"Unknown tool: {{function_name}}"}}),
+                            "tool_call_id": tool_call.id
+                        }})
+                        
+                except Exception as e:
+                    # Handle tool execution errors
+                    error_result = {{
+                        "error": f"Tool execution failed: {{str(e)}}",
+                        "tool_name": function_name,
+                        "arguments": function_args
+                    }}
+                    tool_results.append({{
+                        "role": "tool",
+                        "content": json.dumps(error_result),
+                        "tool_call_id": tool_call.id
+                    }})
+            
+            # Send tool results back to ASI:One for final response
+            follow_up_messages = [
+                {{"role": "system", "content": system_prompt + pdf_context}},
+                {{"role": "user", "content": text}},
+                {{
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [tool_call for tool_call in message.tool_calls]
+                }},
+                *tool_results
+            ]
+            
+            final_response = client.chat.completions.create(
+                model="asi1-mini",
+                messages=follow_up_messages,
+                tools=get_available_tools(),  # Include tools for safety
+                max_tokens=2048,
+            )
+            response = str(final_response.choices[0].message.content)
+        else:
+            response = str(message.content)
+            
+    except Exception as e:
         ctx.logger.exception("Error querying model")
+        response = f"I encountered an error while processing your request: {{str(e)}}"
 
     await ctx.send(sender, ChatMessage(
         timestamp=datetime.utcnow(),
@@ -244,38 +581,206 @@ async def handle_chat_completions(ctx: Context, req: ChatRequest) -> ChatRespons
         )
 
 async def process_company_request(message: str, sender_company_id: str) -> str:
-    """Process company-specific requests using ASI1 LLM"""
+    """Process company-specific requests using ASI:One with tool calling"""
+    print(f"💬 Processing request: {{message}}")
+    print(f"📄 PDF context length: {{len(pdf_context)}} characters")
     try:
+        # First request with tools and parallel execution support
         r = client.chat.completions.create(
             model="asi1-mini",
             messages=[
-                {{"role": "system", "content": f"You are a helpful AI assistant for {{COMPANY_NAME}}. You handle {{', '.join(agent_config.capabilities)}} requests. Answer user queries clearly and politely."}},
+                {{"role": "system", "content": system_prompt + pdf_context}},
                 {{"role": "user", "content": message}},
             ],
+            tools=get_available_tools(),
+            tool_choice="auto",
+            parallel_tool_calls=True,  # Enable parallel tool execution
             max_tokens=2048,
         )
-        return str(r.choices[0].message.content)
+        
+        message_obj = r.choices[0].message
+        
+        # Check if tools were called
+        if hasattr(message_obj, 'tool_calls') and message_obj.tool_calls:
+            # Process tool calls
+            tool_results = []
+            for tool_call in message_obj.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+                
+                try:
+                    if function_name == "search_company_documents":
+                        result = await search_company_documents(
+                            function_args.get("search_terms", []),
+                            function_args.get("document_urls", [])
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    
+                    elif function_name == "verify_transaction":
+                        result = await verify_payment_transaction(
+                            function_args.get("tx_hash"),
+                            function_args.get("chain_name"), 
+                            function_args.get("from_address"),
+                            function_args.get("to_address"),
+                            function_args.get("token_address"),
+                            function_args.get("amount"),
+                            function_args.get("is_native", False)
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    else:
+                        # Unknown tool
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps({{"error": f"Unknown tool: {{function_name}}"}}),
+                            "tool_call_id": tool_call.id
+                        }})
+                        
+                except Exception as e:
+                    # Handle tool execution errors
+                    error_result = {{
+                        "error": f"Tool execution failed: {{str(e)}}",
+                        "tool_name": function_name,
+                        "arguments": function_args
+                    }}
+                    tool_results.append({{
+                        "role": "tool",
+                        "content": json.dumps(error_result),
+                        "tool_call_id": tool_call.id
+                    }})
+            
+            # Get final response after tool execution
+            follow_up_messages = [
+                {{"role": "system", "content": system_prompt + pdf_context}},
+                {{"role": "user", "content": message}},
+                {{
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [tool_call for tool_call in message_obj.tool_calls]
+                }},
+                *tool_results
+            ]
+            
+            final_response = client.chat.completions.create(
+                model="asi1-mini",
+                messages=follow_up_messages,
+                tools=get_available_tools(),
+                max_tokens=2048,
+            )
+            return str(final_response.choices[0].message.content)
+        else:
+            return str(message_obj.content)
+            
     except Exception as e:
         return f"Error processing request: {{str(e)}}"
 
 async def process_chat_messages(messages: List[Dict[str, Any]], model: str) -> str:
-    """Process chat messages for ASI1 LLM compatibility"""
+    """Process chat messages for ASI:One with tool calling"""
     try:
         # Add system message for company context
         system_message = {{
             "role": "system", 
-            "content": f"You are a helpful AI assistant for {{COMPANY_NAME}}. You handle {{', '.join(agent_config.capabilities)}} requests. Answer user queries clearly and politely."
+            "content": system_prompt
         }}
         
         # Combine system message with user messages
         all_messages = [system_message] + messages
         
+        # First request with tools and parallel execution support
         r = client.chat.completions.create(
             model=model,
             messages=all_messages,
+            tools=get_available_tools(),
+            tool_choice="auto",
+            parallel_tool_calls=True,  # Enable parallel tool execution
             max_tokens=2048,
         )
-        return str(r.choices[0].message.content)
+        
+        message_obj = r.choices[0].message
+        
+        # Check if tools were called
+        if hasattr(message_obj, 'tool_calls') and message_obj.tool_calls:
+            # Process tool calls
+            tool_results = []
+            for tool_call in message_obj.tool_calls:
+                function_name = tool_call.function.name
+                function_args = json.loads(tool_call.function.arguments)
+                
+                try:
+                    if function_name == "search_company_documents":
+                        result = await search_company_documents(
+                            function_args.get("search_terms", []),
+                            function_args.get("document_urls", [])
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    
+                    elif function_name == "verify_transaction":
+                        result = await verify_payment_transaction(
+                            function_args.get("tx_hash"),
+                            function_args.get("chain_name"), 
+                            function_args.get("from_address"),
+                            function_args.get("to_address"),
+                            function_args.get("token_address"),
+                            function_args.get("amount"),
+                            function_args.get("is_native", False)
+                        )
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps(result) if isinstance(result, (dict, list)) else str(result),
+                            "tool_call_id": tool_call.id
+                        }})
+                    else:
+                        # Unknown tool
+                        tool_results.append({{
+                            "role": "tool",
+                            "content": json.dumps({{"error": f"Unknown tool: {{function_name}}"}}),
+                            "tool_call_id": tool_call.id
+                        }})
+                        
+                except Exception as e:
+                    # Handle tool execution errors
+                    error_result = {{
+                        "error": f"Tool execution failed: {{str(e)}}",
+                        "tool_name": function_name,
+                        "arguments": function_args
+                    }}
+                    tool_results.append({{
+                        "role": "tool",
+                        "content": json.dumps(error_result),
+                        "tool_call_id": tool_call.id
+                    }})
+            
+            # Get final response after tool execution
+            follow_up_messages = all_messages + [
+                {{
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [tool_call for tool_call in message_obj.tool_calls]
+                }},
+                *tool_results
+            ]
+            
+            final_response = client.chat.completions.create(
+                model=model,
+                messages=follow_up_messages,
+                tools=get_available_tools(),
+                max_tokens=2048,
+            )
+            return str(final_response.choices[0].message.content)
+        else:
+            return str(message_obj.content)
+            
     except Exception as e:
         return f"Error processing chat request: {{str(e)}}"
 
@@ -316,7 +821,7 @@ if __name__ == "__main__":
             
             self.port_mapping[agent_id] = assigned_port
             
-            agent_code = self.generate_company_agent_code(agent_config)
+            agent_code = await self.generate_company_agent_code(agent_config)
             
             filepath = self.save_company_agent_file(agent_id, agent_code)
             
@@ -347,7 +852,10 @@ if __name__ == "__main__":
                 "seed_phrase": agent_config.seed_phrase,
                 "capabilities": agent_config.capabilities,
                 "description": agent_config.description,
-                "webhook_url": agent_config.webhook_url
+                "webhook_url": agent_config.webhook_url,
+                "pdf_document_urls": agent_config.pdf_document_urls or [],
+                "support_categories": agent_config.support_categories or [],
+                "company_products": agent_config.company_products or []
             }
             
             return CompanyAgentResponse(
@@ -362,7 +870,10 @@ if __name__ == "__main__":
                 process_id=process.pid,
                 capabilities=agent_config.capabilities,
                 description=agent_config.description,
-                webhook_url=agent_config.webhook_url
+                webhook_url=agent_config.webhook_url,
+                pdf_document_urls=agent_config.pdf_document_urls,
+                support_categories=agent_config.support_categories,
+                company_products=agent_config.company_products
             )
             
         except HTTPException:
@@ -408,7 +919,10 @@ if __name__ == "__main__":
                 process_id=agent_info.get("process_id"),
                 capabilities=agent_info.get("capabilities", []),
                 description=agent_info.get("description"),
-                webhook_url=agent_info.get("webhook_url")
+                webhook_url=agent_info.get("webhook_url"),
+                pdf_document_urls=agent_info.get("pdf_document_urls", []),
+                support_categories=agent_info.get("support_categories", []),
+                company_products=agent_info.get("company_products", [])
             ))
         
         return agents
@@ -435,7 +949,10 @@ if __name__ == "__main__":
                         process_id=agent_info.get("process_id"),
                         capabilities=agent_info.get("capabilities", []),
                         description=agent_info.get("description"),
-                        webhook_url=agent_info.get("webhook_url")
+                        webhook_url=agent_info.get("webhook_url"),
+                        pdf_document_urls=agent_info.get("pdf_document_urls", []),
+                        support_categories=agent_info.get("support_categories", []),
+                        company_products=agent_info.get("company_products", [])
                     ))
             
             
@@ -497,7 +1014,10 @@ if __name__ == "__main__":
             process_id=agent_info.get("process_id"),
             capabilities=agent_info.get("capabilities", []),
             description=agent_info.get("description"),
-            webhook_url=agent_info.get("webhook_url")
+            webhook_url=agent_info.get("webhook_url"),
+            pdf_document_urls=agent_info.get("pdf_document_urls", []),
+            support_categories=agent_info.get("support_categories", []),
+            company_products=agent_info.get("company_products", [])
         )
     
     async def delete_company_agent(self, agent_id: str) -> Dict[str, str]:

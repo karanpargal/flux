@@ -3,14 +3,12 @@ from typing import Dict, Any
 import json
 from datetime import datetime
 
+from ..services import get_company_agent_service
 from ..services.company_agent_service import CompanyAgentService
 
 router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 
-def get_company_agent_service() -> CompanyAgentService:
-    """Dependency to get company agent service instance"""
-    return CompanyAgentService()
 
 
 @router.post("/agent/{agent_id}")

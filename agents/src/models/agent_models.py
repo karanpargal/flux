@@ -13,15 +13,18 @@ class AgentCreateRequest(BaseModel):
 
 
 class CompanyAgentCreateRequest(BaseModel):
-    """Request model for creating a company-specific agent"""
+    """Request model for creating a company support agent"""
     company_id: str
     company_name: str
     agent_name: str
     port: Optional[int] = None  
     seed_phrase: Optional[str] = None
-    capabilities: List[str] = []
+    capabilities: List[str] = ["customer_support", "product_information", "document_reference", "transaction_verification", "technical_support", "billing_support", "general_inquiries"]
     description: Optional[str] = None
     webhook_url: Optional[str] = None
+    pdf_document_urls: Optional[List[str]] = None
+    support_categories: Optional[List[str]] = None  # e.g., ["billing", "technical", "general"]
+    company_products: Optional[List[str]] = None  # List of company products/services
 
 
 class AgentResponse(BaseModel):
@@ -36,7 +39,7 @@ class AgentResponse(BaseModel):
 
 
 class CompanyAgentResponse(BaseModel):
-    """Response model for company agent information"""
+    """Response model for company support agent information"""
     agent_id: str
     company_id: str
     company_name: str
@@ -49,6 +52,9 @@ class CompanyAgentResponse(BaseModel):
     capabilities: List[str] = []
     description: Optional[str] = None
     webhook_url: Optional[str] = None
+    pdf_document_urls: Optional[List[str]] = None
+    support_categories: Optional[List[str]] = None
+    company_products: Optional[List[str]] = None
 
 
 class AgentStatusResponse(BaseModel):
@@ -191,3 +197,56 @@ class ChatUsage(BaseModel):
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
+
+
+# PDF Processing Models
+class PDFProcessRequest(BaseModel):
+    """Request model for processing PDF documents"""
+    url: str
+    max_length: Optional[int] = 50000
+
+
+class PDFProcessResponse(BaseModel):
+    """Response model for PDF processing"""
+    success: bool
+    document_id: Optional[str] = None
+    content: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    page_count: Optional[int] = None
+    content_length: Optional[int] = None
+    file_size: Optional[int] = None
+    url: Optional[str] = None
+    error: Optional[str] = None
+
+
+class PDFSearchRequest(BaseModel):
+    """Request model for searching PDF content"""
+    document_id: str
+    search_terms: List[str]
+
+
+class PDFSearchResponse(BaseModel):
+    """Response model for PDF search results"""
+    success: bool
+    document_id: str
+    search_results: Optional[Dict[str, Any]] = None
+    total_terms_searched: Optional[int] = None
+    terms_found: Optional[int] = None
+    error: Optional[str] = None
+
+
+class PDFDocumentInfo(BaseModel):
+    """Model for PDF document information"""
+    document_id: str
+    url: str
+    content_length: int
+    page_count: int
+    file_size: int
+    processed_at: str
+    status: str
+
+
+class PDFDocumentsResponse(BaseModel):
+    """Response model for listing PDF documents"""
+    total_documents: int
+    documents: List[PDFDocumentInfo]
