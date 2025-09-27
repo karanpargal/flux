@@ -138,6 +138,7 @@ This knowledge base contains your company's official documentation including:
         # Generate support agent system prompt using capability service
         support_categories = agent_config.support_categories or ["general", "technical", "billing"]
         company_products = agent_config.company_products or ["products and services"]
+
         
         system_prompt = self.capability_service.get_system_prompt_for_capabilities(
             agent_config.capabilities,
@@ -145,6 +146,7 @@ This knowledge base contains your company's official documentation including:
             support_categories,
             company_products
         )
+
         
         # Get tool imports and functions based on capabilities
         tool_imports = self.capability_service.get_tool_imports_for_capabilities(agent_config.capabilities)
@@ -152,9 +154,11 @@ This knowledge base contains your company's official documentation including:
             agent_config.capabilities, 
             agent_config.pdf_document_urls
         )
+
         
         # Get available tools for the agent
         available_tools = self.capability_service.get_tools_for_capabilities(agent_config.capabilities)
+
         
         code = f'''from datetime import datetime
 from uuid import uuid4
@@ -216,7 +220,7 @@ class ChatResponse(Model):
     choices: List[Dict[str, Any]]
     usage: Dict[str, Any] = {{}}
 
-SEED_PHRASE = "{agent_config.seed_phrase or 'default_seed_phrase'}"
+SEED_PHRASE = "{agent_config.seed_phrase or 'default_seed_phrase' + f"{time.time()}"}"
 COMPANY_ID = "{agent_config.company_id}"
 COMPANY_NAME = "{agent_config.company_name}"
 AGENT_NAME = "{agent_config.agent_name}"
@@ -877,11 +881,12 @@ if __name__ == "__main__":
             except Exception as wallet_error:
                 print(f"⚠️ Wallet creation failed: {str(wallet_error)}")
                 wallet_info = None
+
             
             agent_code = await self.generate_company_agent_code(agent_config)
-            
+
             filepath = self.save_company_agent_file(agent_id, agent_code)
-            
+
             process = self.process_service.start_agent_process(agent_id, filepath)
             
             await asyncio.sleep(3)

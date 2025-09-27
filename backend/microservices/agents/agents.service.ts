@@ -10,6 +10,7 @@ export const notifyThirdPartyServer = async (
         description,
         name,
         org_id,
+        capabilities,
     }: Omit<
         MappedAgent,
         "created_at" | "agent_id" | "active" | "ens" | "wallet_address"
@@ -22,6 +23,7 @@ export const notifyThirdPartyServer = async (
             process.env.THIRD_PARTY_SERVER_URL ||
             "https://api.example.com/agents";
 
+
         const response = await fetch(thirdPartyUrl + "/company-agents", {
             method: "POST",
             headers: {
@@ -32,7 +34,7 @@ export const notifyThirdPartyServer = async (
                 agent_name: name,
                 company_id: org_id,
                 company_name: org_name,
-                capabilities: [],
+                capabilities: capabilities ? Object.keys(capabilities) : [],
                 pdf_document_urls: [],
                 support_categories: [],
                 company_products: [],
@@ -108,7 +110,7 @@ export const storeAgentInDatabase = async ({
 
 export const createAgent = async (
     org_name: MappedOrg["name"],
-    { name, description, org_id, resource_urls, file_urls }: MappedAgent,
+    { name, description, org_id, resource_urls, file_urls, capabilities }: MappedAgent,
     files?: any[],
 ) => {
     const log = logger.scoped("createAgent");
@@ -117,7 +119,7 @@ export const createAgent = async (
         const { agent_id, address, ens_name } = await notifyThirdPartyServer(
             org_name,
             {
-                capabilities: [],
+                capabilities,
                 file_urls,
                 resource_urls,
                 name,
@@ -127,6 +129,7 @@ export const createAgent = async (
         );
 
         // If files are provided, upload them during creation
+
         let finalFileUrls = file_urls || [];
         if (files && files.length > 0) {
             log.info("uploading-files-during-creation", {
@@ -155,7 +158,7 @@ export const createAgent = async (
         }
 
         const data = await storeAgentInDatabase({
-            capabilities: [],
+            capabilities,
             active: true,
             file_urls: finalFileUrls,
             resource_urls,
