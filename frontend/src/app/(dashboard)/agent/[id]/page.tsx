@@ -162,36 +162,12 @@ export default function AgentInterfacePage() {
                                     : "Agent interface and management"}
                             </p>
                         </div>
-                        <div className="flex gap-3">
-                            {!isEditing && (
-                                <>
-                                    <button
-                                        onClick={() => setIsEditing(true)}
-                                        className="bg-citrus-500 hover:bg-citrus-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                                    >
-                                        Edit Agent
-                                    </button>
-                                    <button
-                                        onClick={handleToggleStatus}
-                                        className="px-4 py-2 rounded-lg font-medium transition-colors bg-stone-500 hover:bg-stone-600 text-white"
-                                    >
-                                        Toggle Status
-                                    </button>
-                                    <button
-                                        onClick={handleDeleteAgent}
-                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg font-medium transition-colors"
-                                    >
-                                        Delete
-                                    </button>
-                                </>
-                            )}
-                        </div>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="flex items-stretch gap-8 glass-effect-citrus p-8 rounded-3xl">
                     {/* Main Content */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="space-y-6 w-full flex flex-col">
                         {isEditing ? (
                             /* Edit Form */
                             <div className="bg-white p-6 rounded-lg shadow-lg border border-stone-200">
@@ -297,51 +273,51 @@ export default function AgentInterfacePage() {
                             </div>
                         ) : (
                             /* View Mode */
-                            <>
+                            <div className="w-full flex-1">
                                 {/* Agent Details */}
-                                <div className="bg-white p-6 rounded-lg shadow-lg border border-stone-200">
-                                    <h2 className="text-xl font-semibold text-stone-500 mb-4">
+                                <div className="bg-white w-full  py-6 rounded-lg shadow-lg border border-stone-200 h-full">
+                                    <h2 className="text-xl border-b px-6 pb-4 font-semibold text-stone-500 mb-4">
                                         Agent Details
                                     </h2>
-                                    <div className="space-y-4">
+                                    <div className="space-y-4 px-6">
                                         <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Name
                                             </label>
-                                            <p className="text-stone-600">
+                                            <p className="text-stone-600 text-lg">
                                                 {agent?.name}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Description
                                             </label>
-                                            <p className="text-stone-600">
+                                            <p className="text-stone-600 text-lg">
                                                 {agent?.description ||
                                                     "No description provided"}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Agent ID
                                             </label>
-                                            <p className="text-sm text-stone-500 font-mono bg-stone-50 p-2 rounded">
+                                            <p className="text-lg text-stone-500 font-mono bg-stone-50 p-2 rounded">
                                                 {agent?.agent_id}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Organization ID
                                             </label>
-                                            <p className="text-sm text-stone-500 font-mono bg-stone-50 p-2 rounded">
+                                            <p className="text-lg text-stone-500 font-mono bg-stone-50 p-2 rounded">
                                                 {agent?.org_id}
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Created At
                                             </label>
-                                            <p className="text-stone-600">
+                                            <p className="text-stone-600 text-lg">
                                                 {agent?.created_at
                                                     ? new Date(
                                                           agent.created_at
@@ -350,10 +326,10 @@ export default function AgentInterfacePage() {
                                             </p>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Status
                                             </label>
-                                            <p className="text-stone-600">
+                                            <p className="text-stone-600 text-lg">
                                                 <span
                                                     className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                         agent?.active
@@ -370,7 +346,7 @@ export default function AgentInterfacePage() {
                                         {agent?.resource_urls &&
                                             agent.resource_urls.length > 0 && (
                                                 <div>
-                                                    <label className="block text-sm font-medium text-stone-400 mb-1">
+                                                    <label className="block text-base font-medium text-stone-400 mb-1">
                                                         Resource URLs
                                                     </label>
                                                     <div className="space-y-2">
@@ -386,7 +362,7 @@ export default function AgentInterfacePage() {
                                                                         }
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="text-citrus-500 hover:text-citrus-600 text-sm break-all"
+                                                                        className="text-citrus-500 hover:text-citrus-600 text-lg break-all"
                                                                     >
                                                                         {url}
                                                                     </a>
@@ -418,7 +394,7 @@ export default function AgentInterfacePage() {
                                                                         }
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
-                                                                        className="text-citrus-500 hover:text-citrus-600 text-sm break-all"
+                                                                        className="text-citrus-500 hover:text-citrus-600 text-lg break-all"
                                                                     >
                                                                         {fileUrl
                                                                             .split(
@@ -438,39 +414,39 @@ export default function AgentInterfacePage() {
                                             )}
                                     </div>
                                 </div>
-                            </>
+                            </div>
                         )}
                     </div>
 
                     {/* Sidebar */}
-                    <div className="space-y-6">
+                    <div className="space-y-6 flex flex-col ">
                         {/* Stats */}
-                        <div className="bg-white p-6 rounded-lg shadow-lg border border-stone-200">
-                            <h2 className="text-xl font-semibold text-stone-500 mb-4">
+                        <div className="bg-white py-6 w-96 rounded-lg shadow-lg border border-stone-200">
+                            <h2 className="text-xl px-6 border-b pb-4 font-semibold text-stone-500 mb-4">
                                 Agent Information
                             </h2>
-                            <div className="space-y-4">
+                            <div className="space-y-4 px-6">
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400 mb-1">
+                                    <label className="block text-base font-medium text-stone-400 mb-1">
                                         Agent ID
                                     </label>
-                                    <p className="text-sm text-stone-500 font-mono bg-stone-50 p-2 rounded">
+                                    <p className="text-lg text-stone-500 font-mono bg-stone-50 p-2 rounded">
                                         {agent?.agent_id}
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400 mb-1">
+                                    <label className="block text-base font-medium text-stone-400 mb-1">
                                         Organization ID
                                     </label>
-                                    <p className="text-sm text-stone-500 font-mono bg-stone-50 p-2 rounded">
+                                    <p className="text-lg text-stone-500 font-mono bg-stone-50 p-2 rounded">
                                         {agent?.org_id}
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400 mb-1">
+                                    <label className="block text-base font-medium text-stone-400 mb-1">
                                         Created
                                     </label>
-                                    <p className="text-stone-600">
+                                    <p className="text-stone-600 text-lg">
                                         {agent?.created_at
                                             ? new Date(
                                                   agent.created_at
@@ -479,10 +455,10 @@ export default function AgentInterfacePage() {
                                     </p>
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-stone-400 mb-1">
+                                    <label className="block text-base font-medium text-stone-400 mb-1">
                                         Status
                                     </label>
-                                    <p className="text-stone-600">
+                                    <p className="text-stone-600 text-lg">
                                         <span
                                             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                                 agent?.active
@@ -499,7 +475,7 @@ export default function AgentInterfacePage() {
                                 {agent?.resource_urls &&
                                     agent.resource_urls.length > 0 && (
                                         <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Resource URLs (
                                                 {agent.resource_urls.length})
                                             </label>
@@ -541,7 +517,7 @@ export default function AgentInterfacePage() {
                                 {agent?.file_urls &&
                                     agent.file_urls.length > 0 && (
                                         <div>
-                                            <label className="block text-sm font-medium text-stone-400 mb-1">
+                                            <label className="block text-base font-medium text-stone-400 mb-1">
                                                 Files ({agent.file_urls.length})
                                             </label>
                                             <div className="space-y-1">
@@ -583,22 +559,34 @@ export default function AgentInterfacePage() {
                         </div>
 
                         {/* Quick Actions */}
-                        <div className="bg-white p-6 rounded-lg shadow-lg border border-stone-200">
-                            <h2 className="text-xl font-semibold text-stone-500 mb-4">
-                                Quick Actions
-                            </h2>
-                            <div className="space-y-3">
-                                <button className="w-full bg-citrus-500 hover:bg-citrus-600 text-white py-2 px-4 rounded-md transition-colors">
-                                    Test Agent
-                                </button>
-                                <button className="w-full bg-stone-500 hover:bg-stone-600 text-white py-2 px-4 rounded-md transition-colors">
-                                    View Logs
-                                </button>
-                                <button className="w-full bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-md transition-colors">
-                                    Export Data
-                                </button>
+                        {!isEditing && (
+                            <div className="bg-white py-6 rounded-lg shadow-lg border border-stone-200">
+                                <h2 className="text-xl px-6 border-b pb-4 font-semibold text-stone-500 mb-6">
+                                    Quick Actions
+                                </h2>
+                                <div className="flex gap-3 flex-col px-6">
+                                    <button
+                                        onClick={handleToggleStatus}
+                                        className="px-4 py-2 rounded font-medium transition-colors bg-stone-500 hover:bg-stone-600 text-white"
+                                    >
+                                        Toggle Status
+                                    </button>
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="bg-citrus-500 hover:bg-citrus-600 text-white px-4 py-2 rounded font-medium transition-colors"
+                                    >
+                                        Edit Agent
+                                    </button>
+
+                                    <button
+                                        onClick={handleDeleteAgent}
+                                        className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded font-medium transition-colors"
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             </div>

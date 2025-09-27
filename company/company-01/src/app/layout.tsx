@@ -30,7 +30,7 @@ export default function RootLayout({
                 className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased`}
             >
                 <iframe
-                    src={process.env.NEXT_PUBLIC_SUPPORTIFY_EMBED_URL}
+                    src={process.env.NEXT_PUBLIC_FLUX_EMBED_URL}
                     width="350"
                     height="500"
                     style={{
