@@ -1,3 +1,15 @@
+<div align="center">
+  <img alt="ETHOnline" src="./repo-assets/logo.png"  />
+</div>
+<br>
+
+</p>
+<blockquote align="center"> 
+  Built with ❤️, delivered on ☕</a>
+</blockquote>
+
+<br>
+
 # Flux: Autonomous Support for the On-Chain World
 
 Flux is a Web3-native, AI-powered customer support platform designed for the decentralized economy. We empower crypto organizations to deploy intelligent AI agents that resolve user queries with on-chain awareness and verifiable integrity.
@@ -41,6 +53,11 @@ The result is a support experience that is instant, intelligent, and crypto-nati
 ## For Customers (Widget/Chat)
 
 **Instant Resolution**: Get answers and secure, instant on-chain actions directly from the agent.
+
+# 📺 **Previews**
+| ![Preview 1.1](./repo-assets/landing.png) | ![Preview 1.2](./repo-assets/preview1.jpeg) | ![Preview 1.3](./repo-assets/preview2.jpeg) |
+| -------------------------------------------- | -------------------------------------------- | -------------------------------------------- |
+| ![Preview 1.4](./repo-assets/preview3.jpeg) |  ![Preview 1.5](./repo-assets/preview4.jpeg) |
 
 # 🚀 **Getting Started**
 
@@ -123,7 +140,7 @@ cd frontend && pnpm run build && pnpm start
 
 We built Flux using cutting-edge decentralized infrastructure to maximize trust, scalability, and performance.
 
-## 1. Artificial Superintelligence Alliance
+## 1. Artificial Superintelligence Alliance (ASI)
 
 **Agent Architecture**: We utilize the uAgent framework to create resilient, conversational support agents.
 
@@ -148,6 +165,14 @@ IP => https://81.15.150.167/
 You will see all the endpoints in this IP's response. You might have to continue by clicking on Advanced since it's not domain and SSL gated.
 
 ![Fluence VM](repo-assets/fluence.png)
+
+# ⏭️ **What's next for Flux?**
+
+**Role-Based Access Control (RBAC)**: Implementing granular permissions for larger organizations to manage agent deployment and multisig policies across teams.
+
+**Advanced Analytics**: Building comprehensive dashboards to track key metrics like Resolution Rate (On-Chain), Cost Savings, and Agent Performance to demonstrate ROI.
+
+**Deep Protocol Integrations**: Developing native integration modules for top DeFi protocols (e.g., Aave, Uniswap) to enable agents to handle protocol-specific states and complex vault interactions.
 
 # 📜 **License**
 
