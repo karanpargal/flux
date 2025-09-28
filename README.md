@@ -40,3 +40,24 @@ The result is a support experience that is instant, intelligent, and crypto-nati
 **Wallet Authentication**: Start a chat by signing a message to verify identity.
 
 **Instant Resolution**: Get answers and secure, instant on-chain actions directly from the protocol.
+
+## 🚀 Hackathon Integrations
+We built Flux using cutting-edge decentralized infrastructure to maximize trust, scalability, and performance.
+
+### 1. Artificial Superintelligence Alliance (ASI)
+
+**Agent Architecture**: We utilize the uAgent framework to create resilient, conversational support agents.
+
+**Structured Reasoning**: MeTTa is used for the agent's core logic, enabling secure, structured reasoning necessary for complex tasks like on-chain claim verification before a contract call is executed.
+
+**Omni-Channel**: The use of uAgents allows support via both REST endpoints and native ASI Chat Protocol integration.
+
+### 2. ENS
+**Agent Identity**: Every deployed Flux agent is registered with a unique ENS subdomain (e.g., support.uniswap.eth, claims.dao.eth).
+
+**Auditability**: Users and organizations can verify the authenticity and source of any agent-initiated transaction by checking the ENS name, making the platform fully trust-transparent.
+
+### 3. Fluence 
+**DePIN Compute**: Our specialized AI models (quantized for efficiency) run as inference services on Fluence Virtual Servers.
+
+**Benefit**: This provides a decentralized, resilient, CPU-only compute solution, offering a low-cost, cloudless alternative to traditional centralized infrastructure.
