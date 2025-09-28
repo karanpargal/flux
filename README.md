@@ -1,11 +1,11 @@
 # Flux: Autonomous Support for the On-Chain World
 Flux is a Web3-native, AI-powered customer support platform designed for the decentralized economy. We empower crypto organizations to deploy intelligent AI agents that resolve user queries with on-chain awareness and verifiable integrity.
 
-## 🚩 The Problem: Web2 Tools in a Web3 World
+## 🚩 **The Problem: Web2 Tools in a Web3 World**
 
 Customer support in the crypto ecosystem is fundamentally broken. We are applying centralized, off-chain support models to decentralized, on-chain problems, leading to a crisis of trust, efficiency, and security.
 
-**Lack of On-Chain Context**: Traditional support agents cannot read a block explorer, interpret smart contract states, or diagnose transaction failures. They are blind to the source of truth.
+**Lack of On-Chain Context**: Traditional support agents cannot read a block explorer, interpret on-chain actions, or diagnose transaction failures. They are blind to the source of truth.
 
 **High Operational Costs & Slow Resolutions**: Scaling a 24/7 team of crypto-savvy human agents is prohibitively expensive and slow, leaving users frustrated.
 
@@ -13,7 +13,7 @@ Customer support in the crypto ecosystem is fundamentally broken. We are applyin
 
 **The core issue is a mismatch of paradigms**: Web3 operates on verifiable proof, while traditional support operates on "trust me."
 
-## 🧠 Knowledge Primer: The Flux Solution
+## 🧠 **Knowledge Primer: The Flux Solution**
 Flux bridges this gap by creating autonomous, on-chain-aware AI agents. Instead of creating support tickets, our agents create verifiable resolutions.
 
 Our platform enables any organization (DeFi protocols, DAOs, NFT projects) to:
@@ -26,7 +26,7 @@ Our platform enables any organization (DeFi protocols, DAOs, NFT projects) to:
 
 The result is a support experience that is instant, intelligent, and crypto-native. Users get accurate answers backed by on-chain data, and organizations reduce costs while enhancing security and user trust.
 
-## 🛠️ Key Features (MVP)
+## 🛠️ **Key Features (MVP)**
 ### For Organizations (Admin Dashboard)
 
 **Agent Deployment**: Spin up specialized agents instantly.
@@ -37,11 +37,9 @@ The result is a support experience that is instant, intelligent, and crypto-nati
 
 ### For Customers (Widget/Chat)
 
-**Wallet Authentication**: Start a chat by signing a message to verify identity.
+**Instant Resolution**: Get answers and secure, instant on-chain actions directly from the agent.
 
-**Instant Resolution**: Get answers and secure, instant on-chain actions directly from the protocol.
-
-## 🚀 Hackathon Integrations
+## 🚀 **Hackathon Integrations**
 We built Flux using cutting-edge decentralized infrastructure to maximize trust, scalability, and performance.
 
 ### 1. Artificial Superintelligence Alliance (ASI)
@@ -61,3 +59,25 @@ We built Flux using cutting-edge decentralized infrastructure to maximize trust,
 **DePIN Compute**: Our specialized AI models (quantized for efficiency) run as inference services on Fluence Virtual Servers.
 
 **Benefit**: This provides a decentralized, resilient, CPU-only compute solution, offering a low-cost, cloudless alternative to traditional centralized infrastructure.
+
+# 📜 **License**
+
+`flux` is available under the MIT license. See the [`LICENSE`](./LICENSE) file for more info.
+
+# 🤝 **Contributing**
+
+Please read [`CONTRIBUTING.md`](./CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
+
+# 💥 **Contributors**
+
+<a href="https://github.com/karanpargal/flux/graphs/contributors">
+<img src="https://contrib.rocks/image?repo=karanpargal/flux" alt="Contributors">
+</a>
+
+# 🚨 **Forking this repo**
+
+Many people have contacted us asking if they can use this code for their own websites. The answer to that question is usually "yes", with attribution. There are some cases, such as using this code for a business or something that is greater than a personal project, that we may be less comfortable saying yes to. If in doubt, please don't hesitate to ask us.
+
+We value keeping this site open source, but as you all know, _**plagiarism is bad**_. We spent a non-negligible amount of effort developing, designing, and trying to perfect this iteration of our website, and we are proud of it! All we ask is to not claim this effort as your own.
+
+Refer to this handy [Quora post](https://www.quora.com/Is-it-bad-to-copy-other-peoples-code) if you're not sure what to do. Thanks!
