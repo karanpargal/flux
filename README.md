@@ -123,7 +123,7 @@ cd frontend && pnpm run build && pnpm start
 
 We built Flux using cutting-edge decentralized infrastructure to maximize trust, scalability, and performance.
 
-## 1. Artificial Superintelligence Alliance (ASI)
+## 1. Artificial Superintelligence Alliance
 
 **Agent Architecture**: We utilize the uAgent framework to create resilient, conversational support agents.
 
