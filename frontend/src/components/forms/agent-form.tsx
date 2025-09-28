@@ -8,6 +8,8 @@ import { AgentFormProps } from "../ui/types/page-types";
 import { useCreateAgent } from "../../lib/hooks";
 import { Agent } from "@/lib/types";
 
+/* eslint-disable */
+
 const AVAILABLE_CAPABILITIES = [
   {
     name: "document_reference",

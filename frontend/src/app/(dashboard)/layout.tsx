@@ -1,6 +1,6 @@
 "use client";
 import Header from "@/components/common/header";
-import { ReactNode } from "react";
+import { ReactNode, Suspense } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useOrganization } from "@/lib/hooks";
 
@@ -8,7 +8,7 @@ interface DashboardLayoutProps {
     children: ReactNode;
 }
 
-export default function DashboardLayout({ children }: DashboardLayoutProps) {
+function DashboardLayoutContent({ children }: DashboardLayoutProps) {
     const pathname = usePathname();
     const searchParams = useSearchParams();
 
@@ -37,5 +37,13 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             {shouldShowHeader && <Header />}
             {children}
         </div>
+    );
+}
+
+export default function DashboardLayout({ children }: DashboardLayoutProps) {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <DashboardLayoutContent>{children}</DashboardLayoutContent>
+        </Suspense>
     );
 }
